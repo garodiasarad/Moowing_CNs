@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>NowTech AI - Trade Offer Control</title>
+<style>
+  :root{
+    --bg:#f4f7fb;
+    --card:#ffffff;
+    --nav:#0f172a;
+    --nav2:#172554;
+    --text:#1f2937;
+    --muted:#64748b;
+    --line:#e2e8f0;
+    --primary:#2563eb;
+    --primary2:#1d4ed8;
+    --success:#16a34a;
+    --warning:#d97706;
+    --danger:#dc2626;
+    --chip:#eff6ff;
+    --shadow:0 10px 30px rgba(15,23,42,.08);
+    --radius:18px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    color:var(--text);
+    background:var(--bg);
+  }
+  .app{display:grid; grid-template-columns: 300px 1fr; min-height:100vh}
+  .sidebar{
+    background:linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+    color:#fff;
+    padding:22px 18px;
+    position:sticky; top:0; height:100vh;
+  }
+  .brand{
+    display:flex; align-items:center; gap:14px; margin:8px 4px 24px;
+  }
+  .logo{
+    width:54px; height:54px; border-radius:16px;
+    background:linear-gradient(135deg,#06b6d4,#2563eb);
+    display:grid; place-items:center; font-weight:800; font-size:22px;
+    box-shadow:0 10px 20px rgba(37,99,235,.35);
+  }
+  .brand h1{margin:0; font-size:28px; line-height:1}
+  .brand p{margin:4px 0 0; color:#cbd5e1; font-size:15px}
+  .nav button{
+    width:100%; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03);
+    color:#fff; text-align:left; padding:14px 16px; border-radius:16px; margin-bottom:12px;
+    font-size:18px; cursor:pointer;
+  }
+  .nav button.active, .nav button:hover{
+    background:rgba(37,99,235,.18); border-color:rgba(96,165,250,.38);
+  }
+  .rules{
+    margin-top:28px; padding:18px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
+    border-radius:22px;
+  }
+  .rules h3{margin:0 0 14px; font-size:22px}
+  .rules ul{margin:0; padding-left:22px; color:#e2e8f0}
+  .rules li{margin:10px 0; font-size:16px}
+  .main{padding:28px}
+  .toolbar{
+    display:flex; justify-content:space-between; gap:14px; align-items:center; margin-bottom:24px;
+  }
+  .toolbar h2{font-size:30px; margin:0}
+  .toolbar p{margin:6px 0 0; color:var(--muted); font-size:18px}
+  .toolbar-right{display:flex; gap:12px; flex-wrap:wrap}
+  .btn{
+    border:none; background:var(--primary); color:#fff; padding:13px 18px; border-radius:14px;
+    font-weight:700; cursor:pointer; box-shadow:var(--shadow); font-size:16px;
+  }
+  .btn:hover{background:var(--primary2)}
+  .btn.secondary{background:#e2e8f0; color:#0f172a; box-shadow:none}
+  .btn.success{background:var(--success)}
+  .btn.warning{background:var(--warning)}
+  .btn.danger{background:var(--danger)}
+  .hidden{display:none!important}
+  .cards{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:24px;
+  }
+  .card{
+    background:var(--card); border-radius:24px; padding:20px 22px; box-shadow:var(--shadow); border:1px solid #eef2f7;
+  }
+  .metric-label{color:var(--muted); font-size:16px; margin-bottom:8px}
+  .metric-value{font-size:24px; font-weight:800}
+  .panel-grid{
+    display:grid; grid-template-columns:1.15fr .85fr; gap:18px;
+  }
+  .section{display:none}
+  .section.active{display:block}
+  .empty{
+    border:2px dashed var(--line); border-radius:18px; padding:18px; color:var(--muted); background:#fafcff;
+  }
+  .form-card{
+    background:var(--card); padding:24px; border-radius:24px; box-shadow:var(--shadow); border:1px solid #eef2f7;
+  }
+  .form-grid{
+    display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+  }
+  .field label{
+    display:block; margin-bottom:8px; font-size:14px; font-weight:700; color:#334155;
+  }
+  .field input, .field select, .field textarea{
+    width:100%; border:1px solid #cbd5e1; border-radius:14px; padding:12px 13px; font-size:15px; background:#fff;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid #bfdbfe; border-color:#60a5fa}
+  .field small{display:block; margin-top:6px; color:var(--muted)}
+  .span-2{grid-column:span 2}
+  .span-4{grid-column:span 4}
+  .actions{display:flex; gap:12px; margin-top:18px; flex-wrap:wrap}
+  .table-wrap{
+    background:var(--card); border-radius:24px; box-shadow:var(--shadow); overflow:auto; border:1px solid #eef2f7;
+  }
+  table{width:100%; border-collapse:collapse; min-width:1280px}
+  th, td{padding:14px 12px; border-bottom:1px solid #eef2f7; font-size:14px; vertical-align:top}
+  th{background:#f8fbff; text-align:left; color:#475569; position:sticky; top:0}
+  tr:hover td{background:#fcfdff}
+  .chip{
+    display:inline-block; padding:6px 10px; border-radius:999px; background:#f1f5f9; font-size:12px; font-weight:700;
+  }
+  .chip.draft{background:#fff7ed; color:#b45309}
+  .chip.approved{background:#ecfdf5; color:#15803d}
+  .chip.rejected{background:#fef2f2; color:#b91c1c}
+  .chip.dn{background:#eff6ff; color:#1d4ed8}
+  .row-actions{display:flex; gap:8px; flex-wrap:wrap}
+  .tiny{padding:8px 10px; border-radius:10px; font-size:12px; box-shadow:none}
+  .muted{color:var(--muted)}
+  .report-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
+  .mono{font-variant-numeric:tabular-nums}
+  .footer-note{margin-top:14px; color:var(--muted); font-size:14px}
+  @media (max-width: 1200px){
+    .cards{grid-template-columns:repeat(2,1fr)}
+    .form-grid{grid-template-columns:repeat(2,1fr)}
+    .panel-grid,.report-grid{grid-template-columns:1fr}
+  }
+  @media (max-width: 900px){
+    .app{grid-template-columns:1fr}
+    .sidebar{position:relative; height:auto}
+    .main{padding:18px}
+    .cards{grid-template-columns:1fr}
+    .form-grid{grid-template-columns:1fr}
+    .span-2,.span-4{grid-column:span 1}
+    .toolbar{flex-direction:column; align-items:flex-start}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">NT</div>
+      <div>
+        <h1>NowTech AI</h1>
+        <p>Trade Offer Control</p>
+      </div>
+    </div>
+    <div class="nav">
+      <button class="nav-btn active" data-target="dashboard">Dashboard</button>
+      <button class="nav-btn" data-target="create">Create Offer</button>
+      <button class="nav-btn" data-target="offers">Offers</button>
+      <button class="nav-btn" data-target="debit">Debit Notes</button>
+      <button class="nav-btn" data-target="reports">Reports</button>
+    </div>
+    <div class="rules">
+      <h3>Control Rules</h3>
+      <ul>
+        <li>Draft offers can be edited and deleted.</li>
+        <li>Only approved offers can receive debit notes.</li>
+        <li>Approved offer price, invoice price, AVF, and dates are locked.</li>
+        <li>Claim amount is auto-calculated as <b>AVF × Actual Qty</b>.</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="toolbar">
+      <div>
+        <h2 id="pageTitle">Dashboard</h2>
+        <p id="pageSubtitle">Controlled workflow for trade promotions and debit note settlement.</p>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn secondary" id="sampleBtn">Load Sample Data</button>
+        <button class="btn secondary" id="resetBtn">Reset Data</button>
+        <button class="btn" id="exportBtn">Export JSON</button>
+      </div>
+    </div>
+
+    <section class="section active" id="dashboard">
+      <div class="cards">
+        <div class="card">
+          <div class="metric-label">Total Offers</div>
+          <div class="metric-value mono" id="mTotalOffers">0</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">Pending Approval</div>
+          <div class="metric-value mono" id="mPending">0</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">Approved Offers</div>
+          <div class="metric-value mono" id="mApproved">0</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">Total DN Amount (₹)</div>
+          <div class="metric-value mono" id="mDnAmount">0.00</div>
+        </div>
+      </div>
+      <div class="panel-grid">
+        <div class="card">
+          <h3>Pending Approvals</h3>
+          <div id="pendingBox" class="empty">No pending approvals.</div>
+        </div>
+        <div class="card">
+          <h3>Recent Debit Notes</h3>
+          <div id="recentDnBox" class="empty">No debit notes added yet.</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="create">
+      <div class="form-card">
+        <h3>Create Offer</h3>
+        <div class="form-grid">
+          <div class="field">
+            <label>Customer</label>
+            <input list="customerSuggestions" id="customer" placeholder="Select or type customer name" />
+            <datalist id="customerSuggestions"></datalist>
+          </div>
+          <div class="field">
+            <label>SKU / Product</label>
+            <input list="skuSuggestions" id="sku" placeholder="Select or type SKU / product" />
+            <datalist id="skuSuggestions"></datalist>
+          </div>
+          <div class="field">
+            <label>MRP (₹)</label>
+            <input id="mrp" type="number" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="field">
+            <label>Current Selling Price (₹)</label>
+            <input id="sellingPrice" type="number" step="0.01" placeholder="0.00" />
+          </div>
+
+          <div class="field">
+            <label>Offer Price to Consumer (₹)</label>
+            <input id="offerPrice" type="number" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="field">
+            <label>Invoice Price (₹)</label>
+            <input id="invoicePrice" type="number" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="field">
+            <label>AVF per Unit (₹)</label>
+            <input id="avf" type="number" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="field">
+            <label>Estimated Qty</label>
+            <input id="estimatedQty" type="number" step="1" placeholder="0" />
+          </div>
+
+          <div class="field">
+            <label>Offer Start Date</label>
+            <input id="startDate" type="date" />
+          </div>
+          <div class="field">
+            <label>Offer End Date</label>
+            <input id="endDate" type="date" />
+          </div>
+          <div class="field span-2">
+            <label>Email / Approval Reference</label>
+            <input id="emailRef" placeholder="Email subject / thread / remark" />
+          </div>
+
+          <div class="field span-4">
+            <label>Notes</label>
+            <textarea id="notes" rows="3" placeholder="Optional internal notes"></textarea>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn" id="saveOfferBtn">Save Draft Offer</button>
+          <button class="btn secondary" id="clearFormBtn">Clear Form</button>
+        </div>
+        <div class="footer-note">Tip: customer and SKU fields keep reusable suggestions from past entries, so repeat selection is faster.</div>
+      </div>
+    </section>
+
+    <section class="section" id="offers">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Offer ID</th>
+              <th>Customer</th>
+              <th>SKU</th>
+              <th>MRP</th>
+              <th>Selling</th>
+              <th>Offer</th>
+              <th>Invoice</th>
+              <th>AVF</th>
+              <th>Period</th>
+              <th>Est. Qty</th>
+              <th>Status</th>
+              <th>Approval</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="offersTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="debit">
+      <div class="form-card" style="margin-bottom:18px;">
+        <h3>Add Debit Note</h3>
+        <div class="form-grid">
+          <div class="field span-2">
+            <label>Approved Offer</label>
+            <select id="dnOfferSelect"></select>
+            <small>Only approved offers appear here.</small>
+          </div>
+          <div class="field">
+            <label>DN Number</label>
+            <input id="dnNumber" placeholder="Debit note number" />
+          </div>
+          <div class="field">
+            <label>DN Date</label>
+            <input id="dnDate" type="date" />
+          </div>
+
+          <div class="field">
+            <label>Claim Period From</label>
+            <input id="dnFrom" type="date" />
+          </div>
+          <div class="field">
+            <label>Claim Period To</label>
+            <input id="dnTo" type="date" />
+          </div>
+          <div class="field">
+            <label>Actual Qty Sold</label>
+            <input id="actualQty" type="number" step="1" placeholder="0" />
+          </div>
+          <div class="field">
+            <label>Claim Amount (Auto)</label>
+            <input id="claimAmountPreview" type="text" readonly />
+          </div>
+
+          <div class="field span-4">
+            <label>DN Remarks</label>
+            <textarea id="dnRemarks" rows="2" placeholder="Optional debit note remarks"></textarea>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="btn success" id="addDnBtn">Save Debit Note</button>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>DN Number</th>
+              <th>DN Date</th>
+              <th>Customer</th>
+              <th>SKU</th>
+              <th>Offer ID</th>
+              <th>AVF</th>
+              <th>Actual Qty</th>
+              <th>Claim Amount</th>
+              <th>Claim Period</th>
+              <th>DN Status</th>
+              <th>Approval</th>
+              <th>Remarks</th>
+            </tr>
+          </thead>
+          <tbody id="dnTbody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section" id="reports">
+      <div class="report-grid">
+        <div class="card">
+          <div class="metric-label">Total Claim Amount (₹)</div>
+          <div class="metric-value mono" id="rTotalClaim">0.00</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">Total Actual Qty</div>
+          <div class="metric-value mono" id="rTotalQty">0</div>
+        </div>
+        <div class="card">
+          <div class="metric-label">Avg AVF (₹)</div>
+          <div class="metric-value mono" id="rAvgAvf">0.00</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <h3>Customer Summary</h3>
+        <div id="customerSummary" class="empty">No customer data yet.</div>
+      </div>
+
+      <div class="card" style="margin-top:18px;">
+        <h3>SKU Summary</h3>
+        <div id="skuSummary" class="empty">No SKU data yet.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const STORAGE_KEY = "nowtech_trade_offer_control_v2";
+
+let state = loadState();
+
+function defaultState(){
+  return {
+    offers: [],
+    debitNotes: []
+  };
+}
+
+function loadState(){
+  try{
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultState();
+  }catch(e){
+    return defaultState();
+  }
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  refreshAll();
+}
+function formatMoney(v){
+  const n = Number(v || 0);
+  return n.toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+}
+function formatDate(v){
+  if(!v) return "";
+  return new Date(v).toLocaleDateString("en-GB");
+}
+function uid(prefix){
+  return prefix + "-" + Math.random().toString(36).slice(2,8).toUpperCase();
+}
+function getOfferById(id){
+  return state.offers.find(o => o.id === id);
+}
+
+function switchSection(id){
+  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+  document.querySelector(`.nav-btn[data-target="${id}"]`).classList.add("active");
+
+  const titles = {
+    dashboard:["Dashboard","Controlled workflow for trade promotions and debit note settlement."],
+    create:["Create Offer","Prepare a draft offer with complete commercial details before approval."],
+    offers:["Offers","Review, approve, reject, and monitor offer records."],
+    debit:["Debit Notes","Capture customer debit note details only against approved offers."],
+    reports:["Reports","Quick summaries by customer and SKU."]
+  };
+  pageTitle.textContent = titles[id][0];
+  pageSubtitle.textContent = titles[id][1];
+}
+document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click",()=>switchSection(btn.dataset.target)));
+
+function updateSuggestions(){
+  const defaultCustomers = ["Reliance Retail","D Mart","Metro Cash & Carry","Nature's Basket"];
+  const defaultSkus = [
+    "MOOWING COW MILK 500ML PP",
+    "MOOWING COW MILK 1000ML PP",
+    "MOOWING PROCESSED CHEESE BLOCK 1kg CBD",
+    "MOOWING PROCESSED CHEESE BLOCK 200g CBD",
+    "MOOWING PROCESSED CHEESE SLICE 200g PP",
+    "MOOWING PROCESS CHSE CUBE 200 GM"
+  ];
+  const customers = [...new Set([...defaultCustomers, ...state.offers.map(o=>o.customer).filter(Boolean)])];
+  const skus = [...new Set([...defaultSkus, ...state.offers.map(o=>o.sku).filter(Boolean)])];
+
+  customerSuggestions.innerHTML = customers.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+  skuSuggestions.innerHTML = skus.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+}
+
+function clearForm(){
+  ["customer","sku","mrp","sellingPrice","offerPrice","invoicePrice","avf","estimatedQty","startDate","endDate","emailRef","notes"].forEach(id => {
+    document.getElementById(id).value = "";
+  });
+}
+
+function validateOfferInput(){
+  const required = [
+    ["customer","Customer"],
+    ["sku","SKU"],
+    ["mrp","MRP"],
+    ["sellingPrice","Current Selling Price"],
+    ["offerPrice","Offer Price"],
+    ["invoicePrice","Invoice Price"],
+    ["avf","AVF"],
+    ["startDate","Start Date"],
+    ["endDate","End Date"]
+  ];
+  for(const [id,label] of required){
+    if(!document.getElementById(id).value){
+      alert(label + " is required.");
+      return false;
+    }
+  }
+  if(new Date(startDate.value) > new Date(endDate.value)){
+    alert("Offer start date cannot be after end date.");
+    return false;
+  }
+  return true;
+}
+
+saveOfferBtn.addEventListener("click", () => {
+  if(!validateOfferInput()) return;
+  const offer = {
+    id: uid("OFF"),
+    customer: customer.value.trim(),
+    sku: sku.value.trim(),
+    mrp: Number(mrp.value),
+    sellingPrice: Number(sellingPrice.value),
+    offerPrice: Number(offerPrice.value),
+    invoicePrice: Number(invoicePrice.value),
+    avf: Number(avf.value),
+    estimatedQty: Number(estimatedQty.value || 0),
+    startDate: startDate.value,
+    endDate: endDate.value,
+    emailRef: emailRef.value.trim(),
+    notes: notes.value.trim(),
+    status: "Draft",
+    createdAt: new Date().toISOString(),
+    approvedBy: "",
+    approvedDate: ""
+  };
+  state.offers.unshift(offer);
+  saveState();
+  clearForm();
+  switchSection("offers");
+});
+
+clearFormBtn.addEventListener("click", clearForm);
+
+function approveOffer(id){
+  const offer = getOfferById(id);
+  if(!offer) return;
+  offer.status = "Approved";
+  offer.approvedBy = "Approver";
+  offer.approvedDate = new Date().toISOString();
+  saveState();
+}
+function rejectOffer(id){
+  const offer = getOfferById(id);
+  if(!offer) return;
+  offer.status = "Rejected";
+  saveState();
+}
+function deleteOffer(id){
+  const offer = getOfferById(id);
+  if(!offer) return;
+  if(offer.status !== "Draft"){
+    alert("Only draft offers can be deleted.");
+    return;
+  }
+  if(!confirm("Delete this draft offer?")) return;
+  state.offers = state.offers.filter(o => o.id !== id);
+  saveState();
+}
+function editOffer(id){
+  const offer = getOfferById(id);
+  if(!offer) return;
+  if(offer.status !== "Draft"){
+    alert("Only draft offers can be edited.");
+    return;
+  }
+  switchSection("create");
+  customer.value = offer.customer;
+  sku.value = offer.sku;
+  mrp.value = offer.mrp;
+  sellingPrice.value = offer.sellingPrice;
+  offerPrice.value = offer.offerPrice;
+  invoicePrice.value = offer.invoicePrice;
+  avf.value = offer.avf;
+  estimatedQty.value = offer.estimatedQty;
+  startDate.value = offer.startDate;
+  endDate.value = offer.endDate;
+  emailRef.value = offer.emailRef || "";
+  notes.value = offer.notes || "";
+  state.offers = state.offers.filter(o => o.id !== id);
+  saveState();
+}
+
+function refreshDashboard(){
+  const totalOffers = state.offers.length;
+  const pending = state.offers.filter(o => o.status === "Draft").length;
+  const approved = state.offers.filter(o => o.status === "Approved").length;
+  const dnAmount = state.debitNotes.reduce((sum,d) => sum + Number(d.claimAmount || 0), 0);
+
+  mTotalOffers.textContent = totalOffers;
+  mPending.textContent = pending;
+  mApproved.textContent = approved;
+  mDnAmount.textContent = formatMoney(dnAmount);
+
+  const pendingOffers = state.offers.filter(o => o.status === "Draft").slice(0,5);
+  if(!pendingOffers.length){
+    pendingBox.className = "empty";
+    pendingBox.innerHTML = "No pending approvals.";
+  }else{
+    pendingBox.className = "";
+    pendingBox.innerHTML = pendingOffers.map(o => `
+      <div style="padding:10px 0;border-bottom:1px solid #eef2f7;">
+        <div><b>${escapeHtml(o.customer)}</b> · ${escapeHtml(o.sku)}</div>
+        <div class="muted">Offer ₹${formatMoney(o.offerPrice)} | Invoice ₹${formatMoney(o.invoicePrice)} | AVF ₹${formatMoney(o.avf)} | ${formatDate(o.startDate)} - ${formatDate(o.endDate)}</div>
+      </div>
+    `).join("");
+  }
+
+  const recentDns = [...state.debitNotes].slice(0,5);
+  if(!recentDns.length){
+    recentDnBox.className = "empty";
+    recentDnBox.innerHTML = "No debit notes added yet.";
+  }else{
+    recentDnBox.className = "";
+    recentDnBox.innerHTML = recentDns.map(d => `
+      <div style="padding:10px 0;border-bottom:1px solid #eef2f7;">
+        <div><b>${escapeHtml(d.dnNumber)}</b> · ${escapeHtml(d.customer)}</div>
+        <div class="muted">${escapeHtml(d.sku)} | Qty ${Number(d.actualQty).toLocaleString("en-IN")} | Claim ₹${formatMoney(d.claimAmount)}</div>
+      </div>
+    `).join("");
+  }
+}
+
+function refreshOffersTable(){
+  if(!state.offers.length){
+    offersTbody.innerHTML = `<tr><td colspan="13"><div class="empty">No offers created yet.</div></td></tr>`;
+    return;
+  }
+  offersTbody.innerHTML = state.offers.map(o => `
+    <tr>
+      <td><b>${o.id}</b></td>
+      <td>${escapeHtml(o.customer)}</td>
+      <td>${escapeHtml(o.sku)}</td>
+      <td class="mono">${formatMoney(o.mrp)}</td>
+      <td class="mono">${formatMoney(o.sellingPrice)}</td>
+      <td class="mono">${formatMoney(o.offerPrice)}</td>
+      <td class="mono">${formatMoney(o.invoicePrice)}</td>
+      <td class="mono">${formatMoney(o.avf)}</td>
+      <td>${formatDate(o.startDate)}<br><span class="muted">to ${formatDate(o.endDate)}</span></td>
+      <td class="mono">${Number(o.estimatedQty || 0).toLocaleString("en-IN")}</td>
+      <td><span class="chip ${o.status.toLowerCase()}">${o.status}</span></td>
+      <td>${o.approvedDate ? `${escapeHtml(o.approvedBy)}<br><span class="muted">${formatDate(o.approvedDate)}</span>` : '<span class="muted">Pending</span>'}</td>
+      <td>
+        <div class="row-actions">
+          ${o.status === "Draft" ? `<button class="btn tiny success" onclick="approveOffer('${o.id}')">Approve</button>` : ""}
+          ${o.status === "Draft" ? `<button class="btn tiny warning" onclick="editOffer('${o.id}')">Edit</button>` : ""}
+          ${o.status === "Draft" ? `<button class="btn tiny secondary" onclick="rejectOffer('${o.id}')">Reject</button>` : ""}
+          ${o.status === "Draft" ? `<button class="btn tiny danger" onclick="deleteOffer('${o.id}')">Delete</button>` : ""}
+          ${o.status === "Approved" ? `<button class="btn tiny" onclick="openDnForOffer('${o.id}')">Add DN</button>` : ""}
+        </div>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function refreshDnOfferSelect(){
+  const approved = state.offers.filter(o => o.status === "Approved");
+  dnOfferSelect.innerHTML = approved.length
+    ? `<option value="">Select approved offer</option>` + approved.map(o => `<option value="${o.id}">${escapeHtml(o.id)} · ${escapeHtml(o.customer)} · ${escapeHtml(o.sku)} · AVF ₹${formatMoney(o.avf)}</option>`).join("")
+    : `<option value="">No approved offers available</option>`;
+}
+function calculateClaimPreview(){
+  const offer = getOfferById(dnOfferSelect.value);
+  const qty = Number(actualQty.value || 0);
+  claimAmountPreview.value = offer ? formatMoney(offer.avf * qty) : "";
+}
+dnOfferSelect.addEventListener("change", calculateClaimPreview);
+actualQty.addEventListener("input", calculateClaimPreview);
+
+function openDnForOffer(id){
+  switchSection("debit");
+  refreshDnOfferSelect();
+  dnOfferSelect.value = id;
+  calculateClaimPreview();
+}
+
+addDnBtn.addEventListener("click", () => {
+  const offer = getOfferById(dnOfferSelect.value);
+  if(!offer){
+    alert("Select an approved offer.");
+    return;
+  }
+  if(!dnNumber.value || !dnDate.value || !actualQty.value){
+    alert("DN Number, DN Date, and Actual Qty are required.");
+    return;
+  }
+  const qty = Number(actualQty.value);
+  const claimAmount = Number((offer.avf * qty).toFixed(2));
+
+  const dn = {
+    id: uid("DN"),
+    offerId: offer.id,
+    dnNumber: dnNumber.value.trim(),
+    dnDate: dnDate.value,
+    dnFrom: dnFrom.value,
+    dnTo: dnTo.value,
+    actualQty: qty,
+    claimAmount: claimAmount,
+    remarks: dnRemarks.value.trim(),
+    customer: offer.customer,
+    sku: offer.sku,
+    avf: offer.avf,
+    createdAt: new Date().toISOString(),
+    dn_status: "Submitted",
+    approved_by: "",
+    approved_date: ""
+  };
+  state.debitNotes.unshift(dn);
+  dnNumber.value = "";
+  dnDate.value = "";
+  dnFrom.value = "";
+  dnTo.value = "";
+  actualQty.value = "";
+  claimAmountPreview.value = "";
+  dnRemarks.value = "";
+  dnOfferSelect.value = "";
+  saveState();
+});
+
+
+function approveDN(id){
+  const dn = state.debitNotes.find(d => d.id === id);
+  if(!dn) return;
+  dn.dn_status = "Approved";
+  dn.approved_by = "Sarad";
+  dn.approved_date = new Date().toISOString();
+  saveState();
+}
+
+function rejectDN(id){
+  const dn = state.debitNotes.find(d => d.id === id);
+  if(!dn) return;
+  dn.dn_status = "Rejected";
+  dn.approved_by = "Sarad";
+  dn.approved_date = new Date().toISOString();
+  saveState();
+}
+
+function refreshDnTable(){
+  if(!state.debitNotes.length){
+    dnTbody.innerHTML = `<tr><td colspan="12"><div class="empty">No debit notes saved yet.</div></td></tr>`;
+    return;
+  }
+  dnTbody.innerHTML = state.debitNotes.map(d => `
+    <tr>
+      <td><b>${escapeHtml(d.dnNumber)}</b></td>
+      <td>${formatDate(d.dnDate)}</td>
+      <td>${escapeHtml(d.customer)}</td>
+      <td>${escapeHtml(d.sku)}</td>
+      <td>${escapeHtml(d.offerId)}</td>
+      <td class="mono">${formatMoney(d.avf)}</td>
+      <td class="mono">${Number(d.actualQty).toLocaleString("en-IN")}</td>
+      <td class="mono"><span class="chip dn">₹ ${formatMoney(d.claimAmount)}</span></td>
+      <td>${d.dnFrom || d.dnTo ? `${formatDate(d.dnFrom)} - ${formatDate(d.dnTo)}` : ""}</td>
+      <td><span class="chip ${String(d.dn_status || "Submitted").toLowerCase() === "approved" ? "approved" : (String(d.dn_status || "Submitted").toLowerCase() === "rejected" ? "rejected" : "dn")}">${escapeHtml(d.dn_status || "Submitted")}</span></td>
+      <td>
+        ${(d.dn_status || "Submitted") === "Submitted" ? `
+          <div class="row-actions">
+            <button class="btn tiny success" onclick="approveDN('${d.id}')">Approve</button>
+            <button class="btn tiny danger" onclick="rejectDN('${d.id}')">Reject</button>
+          </div>
+        ` : ((d.approved_by || d.approved_date) ? `${escapeHtml(d.approved_by || "")}<br><span class="muted">${formatDate(d.approved_date || "")}</span>` : `<span class="muted">-</span>`)}
+      </td>
+      <td>${escapeHtml(d.remarks || "")}</td>
+    </tr>
+  `).join("");
+}
+
+function refreshReports(){
+  const totalClaim = state.debitNotes.reduce((sum,d) => sum + Number(d.claimAmount || 0), 0);
+  const totalQty = state.debitNotes.reduce((sum,d) => sum + Number(d.actualQty || 0), 0);
+  const avgAvf = state.offers.length ? state.offers.reduce((sum,o) => sum + Number(o.avf || 0), 0) / state.offers.length : 0;
+  rTotalClaim.textContent = formatMoney(totalClaim);
+  rTotalQty.textContent = totalQty.toLocaleString("en-IN");
+  rAvgAvf.textContent = formatMoney(avgAvf);
+
+  const custMap = {};
+  state.debitNotes.forEach(d => {
+    if(!custMap[d.customer]) custMap[d.customer] = {qty:0, amount:0, dns:0};
+    custMap[d.customer].qty += Number(d.actualQty || 0);
+    custMap[d.customer].amount += Number(d.claimAmount || 0);
+    custMap[d.customer].dns += 1;
+  });
+  customerSummary.innerHTML = Object.keys(custMap).length
+    ? `<table style="min-width:100%;"><thead><tr><th>Customer</th><th>DN Count</th><th>Actual Qty</th><th>Claim Amount</th></tr></thead><tbody>${
+      Object.entries(custMap).map(([k,v]) => `<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>₹ ${formatMoney(v.amount)}</td></tr>`).join("")
+    }</tbody></table>`
+    : `<div class="empty">No customer data yet.</div>`;
+
+  const skuMap = {};
+  state.debitNotes.forEach(d => {
+    if(!skuMap[d.sku]) skuMap[d.sku] = {qty:0, amount:0, dns:0};
+    skuMap[d.sku].qty += Number(d.actualQty || 0);
+    skuMap[d.sku].amount += Number(d.claimAmount || 0);
+    skuMap[d.sku].dns += 1;
+  });
+  skuSummary.innerHTML = Object.keys(skuMap).length
+    ? `<table style="min-width:100%;"><thead><tr><th>SKU</th><th>DN Count</th><th>Actual Qty</th><th>Claim Amount</th></tr></thead><tbody>${
+      Object.entries(skuMap).map(([k,v]) => `<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>₹ ${formatMoney(v.amount)}</td></tr>`).join("")
+    }</tbody></table>`
+    : `<div class="empty">No SKU data yet.</div>`;
+}
+
+function escapeHtml(text){
+  return String(text ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
+
+function refreshAll(){
+  updateSuggestions();
+  refreshDashboard();
+  refreshOffersTable();
+  refreshDnOfferSelect();
+  refreshDnTable();
+  refreshReports();
+}
+
+sampleBtn.addEventListener("click", () => {
+  if(state.offers.length || state.debitNotes.length){
+    if(!confirm("Existing data will remain. Load sample data as additional records?")) return;
+  }
+  const off1 = {
+    id: uid("OFF"),
+    customer: "Reliance Retail",
+    sku: "MOOWING PROCESSED CHEESE SLICE 200g PP",
+    mrp: 180,
+    sellingPrice: 99,
+    offerPrice: 90,
+    invoicePrice: 98,
+    avf: 9,
+    estimatedQty: 5000,
+    startDate: "2026-04-01",
+    endDate: "2026-04-05",
+    emailRef: "Approval email dated 24/03/2026",
+    notes: "Consumer offer approved for April campaign.",
+    status: "Approved",
+    createdAt: new Date().toISOString(),
+    approvedBy: "Approver",
+    approvedDate: new Date().toISOString()
+  };
+  const off2 = {
+    id: uid("OFF"),
+    customer: "Reliance Retail",
+    sku: "MOOWING COW MILK 1000ML PP",
+    mrp: 54,
+    sellingPrice: 51,
+    offerPrice: 49,
+    invoicePrice: 48,
+    avf: 3,
+    estimatedQty: 3000,
+    startDate: "2026-04-10",
+    endDate: "2026-04-15",
+    emailRef: "Approval email dated 25/03/2026",
+    notes: "",
+    status: "Draft",
+    createdAt: new Date().toISOString(),
+    approvedBy: "",
+    approvedDate: ""
+  };
+  const dn1 = {
+    id: uid("DN"),
+    offerId: off1.id,
+    dnNumber: "CN-3671",
+    dnDate: "2026-05-18",
+    dnFrom: "2026-04-01",
+    dnTo: "2026-04-05",
+    actualQty: 5370,
+    claimAmount: 48330,
+    remarks: "As per customer debit note received.",
+    customer: off1.customer,
+    sku: off1.sku,
+    avf: off1.avf,
+    createdAt: new Date().toISOString(),
+    dn_status: "Approved",
+    approved_by: "Sarad",
+    approved_date: new Date().toISOString()
+  };
+  state.offers.unshift(off2);
+  state.offers.unshift(off1);
+  state.debitNotes.unshift(dn1);
+  saveState();
+  switchSection("dashboard");
+});
+
+resetBtn.addEventListener("click", () => {
+  if(!confirm("Reset all saved data from this browser?")) return;
+  state = defaultState();
+  saveState();
+});
+
+exportBtn.addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "trade-offer-data.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+refreshAll();
+</script>
+</body>
+</html>
