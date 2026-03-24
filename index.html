@@ -183,6 +183,7 @@
         <p id="pageSubtitle">Controlled workflow for trade promotions and debit note settlement.</p>
       </div>
       <div class="toolbar-right">
+        <input id="currentUserEmail" type="email" placeholder="Your email for approval access" style="padding:12px 14px;border:1px solid #cbd5e1;border-radius:14px;min-width:280px;" />
         <button class="btn secondary" id="sampleBtn">Load Sample Data</button>
         <button class="btn secondary" id="resetBtn">Reset Data</button>
         <button class="btn" id="exportBtn">Export JSON</button>
@@ -437,7 +438,59 @@ function loadState(){
 }
 function saveState(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  currentUserEmail.value = localStorage.getItem("currentUserEmail") || "";
+currentUserEmail.addEventListener("input", () => {
+  setCurrentUserEmail(currentUserEmail.value);
   refreshAll();
+});
+
+function processEmailAction(){
+  const params = new URLSearchParams(window.location.search);
+  const action = params.get("action");
+  const offerId = params.get("offerId");
+  const dnId = params.get("dnId");
+  if(!action) return;
+  if(!isApprover()){
+    alert("Enter approver email in the top box first.");
+    return;
+  }
+  let changed = false;
+  if(offerId){
+    const offer = getOfferById(offerId);
+    if(offer){
+      if(action === "approve"){
+        offer.status = "Approved";
+        offer.approvedBy = "Sarad";
+        offer.approvedDate = new Date().toISOString();
+      }else if(action === "reject"){
+        offer.status = "Rejected";
+      }
+      changed = true;
+    }
+  }
+  if(dnId){
+    const dn = state.debitNotes.find(d => d.id === dnId);
+    if(dn){
+      if(action === "approve"){
+        dn.dn_status = "Approved";
+      }else if(action === "reject"){
+        dn.dn_status = "Rejected";
+      }
+      dn.approved_by = "Sarad";
+      dn.approved_date = new Date().toISOString();
+      changed = true;
+    }
+  }
+  if(changed){
+    saveState();
+    const cleanUrl = window.location.origin + window.location.pathname;
+    history.replaceState({}, "", cleanUrl);
+    alert("Approval action completed.");
+  }
+}
+
+processEmailAction();
+refreshAll();
 }
 function formatMoney(v){
   const n = Number(v || 0);
@@ -466,6 +519,16 @@ async function postApprovalEmail(payload){
 
 function getOfferById(id){
   return state.offers.find(o => o.id === id);
+}
+const APPROVER_EMAIL = "sarad@happycowdairy.co.in";
+function getCurrentUserEmail(){
+  return (localStorage.getItem("currentUserEmail") || "").trim().toLowerCase();
+}
+function setCurrentUserEmail(v){
+  localStorage.setItem("currentUserEmail", (v || "").trim().toLowerCase());
+}
+function isApprover(){
+  return getCurrentUserEmail() === APPROVER_EMAIL;
 }
 
 function switchSection(id){
@@ -708,9 +771,9 @@ function refreshOffersTable(){
       <td>${o.approvedDate ? `${escapeHtml(o.approvedBy)}<br><span class="muted">${formatDate(o.approvedDate)}</span>` : '<span class="muted">Pending</span>'}</td>
       <td>
         <div class="row-actions">
-          ${o.status === "Draft" ? `<button class="btn tiny success" onclick="approveOffer('${o.id}')">Approve</button>` : ""}
+          ${(o.status === "Draft" && isApprover() && getCurrentUserEmail() !== String(o.createdByEmail || "").toLowerCase()) ? `<button class="btn tiny success" onclick="approveOffer('${o.id}')">Approve</button>` : ""}
           ${o.status === "Draft" ? `<button class="btn tiny warning" onclick="editOffer('${o.id}')">Edit</button>` : ""}
-          ${o.status === "Draft" ? `<button class="btn tiny secondary" onclick="rejectOffer('${o.id}')">Reject</button>` : ""}
+          ${(o.status === "Draft" && isApprover() && getCurrentUserEmail() !== String(o.createdByEmail || "").toLowerCase()) ? `<button class="btn tiny secondary" onclick="rejectOffer('${o.id}')">Reject</button>` : ""}
           ${o.status === "Draft" ? `<button class="btn tiny danger" onclick="deleteOffer('${o.id}')">Delete</button>` : ""}
           ${o.status === "Approved" ? `<button class="btn tiny" onclick="openDnForOffer('${o.id}')">Add DN</button>` : ""}
         </div>
@@ -864,7 +927,7 @@ function refreshDnTable(){
       <td>${d.dnFrom || d.dnTo ? `${formatDate(d.dnFrom)} - ${formatDate(d.dnTo)}` : ""}</td>
       <td><span class="chip ${String(d.dn_status || "Submitted").toLowerCase() === "approved" ? "approved" : (String(d.dn_status || "Submitted").toLowerCase() === "rejected" ? "rejected" : "dn")}">${escapeHtml(d.dn_status || "Submitted")}</span></td>
       <td>
-        ${(d.dn_status || "Submitted") === "Submitted" ? `
+        ${((d.dn_status || "Submitted") === "Submitted" && isApprover() && getCurrentUserEmail() !== String(d.enteredByEmail || "").toLowerCase()) ? `
           <div class="row-actions">
             <button class="btn tiny success" onclick="approveDN('${d.id}')">Approve</button>
             <button class="btn tiny danger" onclick="rejectDN('${d.id}')">Reject</button>
@@ -1004,6 +1067,18 @@ resetBtn.addEventListener("click", () => {
   state = defaultState();
   saveState();
 });
+
+async function sendApprovalEmail(type, payload){
+  try{
+    await fetch("/api/send-approval", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ type, ...payload })
+    });
+  }catch(e){
+    console.error("Email send failed", e);
+  }
+}
 
 exportBtn.addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
