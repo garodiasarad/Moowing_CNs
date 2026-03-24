@@ -4,11 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>NowTech AI - Trade Offer Control</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 body {
   margin: 0;
-  font-family: Arial;
+  font-family: Arial, sans-serif;
   background: #f5f7fb;
 }
 
@@ -24,7 +25,7 @@ body {
   background: white;
   padding: 30px;
   border-radius: 10px;
-  width: 300px;
+  width: 320px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.1);
 }
 
@@ -32,6 +33,7 @@ input {
   width: 100%;
   padding: 10px;
   margin-top: 10px;
+  box-sizing: border-box;
 }
 
 button {
@@ -42,138 +44,195 @@ button {
   color: white;
   border: none;
   cursor: pointer;
+  border-radius: 6px;
 }
 
-/* APP */
+button.small {
+  width: auto;
+  padding: 8px 12px;
+  margin-right: 6px;
+}
+
 #app {
   display: none;
   padding: 20px;
+}
+
+.offer-card {
+  background: white;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.06);
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-box">
     <h3>Login</h3>
-
-    <input id="email" placeholder="Enter Email">
-
+    <input id="email" type="email" placeholder="Enter Email">
     <button onclick="sendCode()">Send Code</button>
 
     <input id="otp" placeholder="Enter 6 digit code">
-
     <button onclick="verifyCode()">Verify</button>
   </div>
 </div>
 
-<!-- APP -->
 <div id="app">
   <h2>Trade Offer App</h2>
   <p id="userEmail"></p>
-
   <button onclick="createOffer()">Create Offer</button>
-
   <div id="offers"></div>
 </div>
 
 <script>
+const SUPABASE_URL = "https://ivhczivvmepfzydwmxqf.supabase.co";
+const SUPABASE_KEY = "sb_publishable_grtvVAM8anWtNIsgfALv_w_bw1qSev-";
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let generatedOTP = "";
 let loggedInUser = "";
 
 /* SEND OTP */
 async function sendCode() {
-  const email = document.getElementById("email").value;
+  const email = document.getElementById("email").value.trim();
 
-  generatedOTP = Math.floor(100000 + Math.random() * 900000).toString();
+  if (!email) {
+    alert("Enter email");
+    return;
+  }
 
-  await fetch('/api/send-approval', {
+  const response = await fetch('/api/send-otp', {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type: "otp",
-      email: email,
-      otp: generatedOTP
-    })
+    body: JSON.stringify({ email })
   });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    alert(result.error || "Failed to send OTP");
+    return;
+  }
 
   alert("OTP sent to email");
 }
 
-/* VERIFY */
-function verifyCode() {
-  const entered = document.getElementById("otp").value;
+/* VERIFY OTP */
+async function verifyCode() {
+  const email = document.getElementById("email").value.trim();
+  const code = document.getElementById("otp").value.trim();
 
-  if (entered === generatedOTP) {
-    loggedInUser = document.getElementById("email").value;
-
-    document.getElementById("loginScreen").style.display = "none";
-    document.getElementById("app").style.display = "block";
-
-    document.getElementById("userEmail").innerText = "Logged in as: " + loggedInUser;
-
-  } else {
-    alert("Wrong OTP");
+  if (!email || !code) {
+    alert("Enter email and code");
+    return;
   }
+
+  const response = await fetch('/api/verify-otp', {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, code })
+  });
+
+  const result = await response.json();
+
+  if (!response.ok) {
+    alert(result.error || "Wrong OTP");
+    return;
+  }
+
+  loggedInUser = result.user.email;
+  sessionStorage.setItem("loggedInUser", loggedInUser);
+
+  document.getElementById("loginScreen").style.display = "none";
+  document.getElementById("app").style.display = "block";
+  document.getElementById("userEmail").innerText = "Logged in as: " + loggedInUser;
+
+  loadOffers();
 }
 
 /* CREATE OFFER */
-function createOffer() {
+async function createOffer() {
   const offer = {
-    id: "OFF-" + Math.random().toString(36).substring(2,7),
-    createdBy: loggedInUser,
-    status: "Pending"
+    id: "OFF-" + Math.random().toString(36).substring(2, 7).toUpperCase(),
+    customer: "Reliance Retail",
+    sku: "Sample SKU",
+    offer_price: 100,
+    status: "Pending",
+    created_by: loggedInUser
   };
 
-  let offers = JSON.parse(localStorage.getItem("offers") || "[]");
-  offers.push(offer);
-  localStorage.setItem("offers", JSON.stringify(offers));
+  const { error } = await supabase.from('offers').insert([offer]);
 
-  renderOffers();
+  if (error) {
+    alert("Create failed: " + error.message);
+    return;
+  }
+
+  loadOffers();
 }
 
-/* RENDER */
-function renderOffers() {
-  let offers = JSON.parse(localStorage.getItem("offers") || "[]");
+/* LOAD OFFERS */
+async function loadOffers() {
+  const { data, error } = await supabase
+    .from('offers')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    alert("Load failed: " + error.message);
+    return;
+  }
 
   let html = "";
 
-  offers.forEach(o => {
-
+  data.forEach(o => {
     html += `
-      <div style="background:white;padding:10px;margin:10px">
-        ${o.id} | ${o.status}
-        
-        ${o.createdBy !== loggedInUser ? `
-          <button onclick="approve('${o.id}')">Approve</button>
-        ` : ''}
+      <div class="offer-card">
+        <b>${o.id}</b> | ${o.customer} | ${o.sku} | ₹${o.offer_price} | ${o.status}
+        <br><small>Created by: ${o.created_by || ""}</small>
+        <div style="margin-top:8px;">
+          ${o.created_by !== loggedInUser && o.status !== "Approved" ? `
+            <button class="small" onclick="approve('${o.id}')">Approve</button>
+          ` : ''}
+        </div>
       </div>
     `;
   });
 
-  document.getElementById("offers").innerHTML = html;
+  document.getElementById("offers").innerHTML = html || "<p>No offers found.</p>";
 }
 
-/* APPROVE */
-function approve(id) {
-  let offers = JSON.parse(localStorage.getItem("offers") || "[]");
+/* APPROVE OFFER */
+async function approve(id) {
+  const { error } = await supabase
+    .from('offers')
+    .update({ status: "Approved" })
+    .eq('id', id);
 
-  offers = offers.map(o => {
-    if (o.id === id) o.status = "Approved";
-    return o;
-  });
+  if (error) {
+    alert("Approve failed: " + error.message);
+    return;
+  }
 
-  localStorage.setItem("offers", JSON.stringify(offers));
-
-  renderOffers();
+  loadOffers();
 }
 
-/* LOAD */
-renderOffers();
+/* CHECK SESSION */
+window.onload = function () {
+  const savedUser = sessionStorage.getItem("loggedInUser");
 
+  if (savedUser) {
+    loggedInUser = savedUser;
+    document.getElementById("loginScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    document.getElementById("userEmail").innerText = "Logged in as: " + loggedInUser;
+    loadOffers();
+  }
+};
 </script>
 
 </body>
