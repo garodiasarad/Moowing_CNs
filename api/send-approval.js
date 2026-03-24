@@ -14,6 +14,7 @@ export default async function handler(req, res) {
 
   const body = req.body || {};
   const type = body.type || "notification";
+  const baseUrl = process.env.APP_BASE_URL || "https://app.nowtechai.net";
 
   const titleMap = {
     offer_created: "Offer created - approval required",
