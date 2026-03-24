@@ -1,77 +1,178 @@
+import { createClient } from '@supabase/supabase-js';
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_KEY
+);
+
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ ok: false, error: 'Method not allowed' });
   }
 
-  const apiKey = process.env.BREVO_API_KEY;
-  const approvalTo = process.env.APPROVAL_TO || "sarad@happycowdairy.co.in";
-  const senderEmail = process.env.BREVO_SENDER_EMAIL;
-  const senderName = process.env.BREVO_SENDER_NAME || "NowTech AI";
+  try {
+    const apiKey = process.env.BREVO_API_KEY;
+    const approvalTo = process.env.APPROVAL_TO || 'sarad@happycowdairy.co.in';
+    const senderEmail = process.env.BREVO_SENDER_EMAIL;
+    const senderName = process.env.BREVO_SENDER_NAME || 'NowTech AI';
+    const baseUrl = process.env.APP_BASE_URL || 'https://app.nowtechai.net';
 
-  if (!apiKey || !senderEmail) {
-    return res.status(500).json({ ok: false, error: "Missing Brevo environment variables" });
-  }
+    if (!apiKey || !senderEmail) {
+      return res.status(500).json({
+        ok: false,
+        error: 'Missing Brevo environment variables',
+      });
+    }
 
-  const body = req.body || {};
-  const type = body.type || "notification";
-  const baseUrl = process.env.APP_BASE_URL || "https://app.nowtechai.net";
+    const body = req.body || {};
+    const type = body.type || 'notification';
 
-  const titleMap = {
-    offer_created: "Offer created - approval required",
-    offer_approved: "Offer approved",
-    offer_rejected: "Offer rejected",
-    dn_submitted: "Debit note submitted - final approval required",
-    dn_approved: "Debit note approved",
-    dn_rejected: "Debit note rejected",
-  };
+    const titleMap = {
+      otp: 'Your Login Code',
+      offer_created: 'Offer created - approval required',
+      offer_approved: 'Offer approved',
+      offer_rejected: 'Offer rejected',
+      dn_submitted: 'Debit note submitted - final approval required',
+      dn_approved: 'Debit note approved',
+      dn_rejected: 'Debit note rejected',
+    };
 
-  const subject = `[Trade Offer] ${titleMap[type] || "Notification"}`;
+    const title = titleMap[type] || 'Trade Offer Notification';
 
-  const lines = Object.entries(body)
-    .filter(([k, v]) => k !== "type" && v !== undefined && v !== null && v !== "")
-    .map(([k, v]) => `<tr><td style="padding:6px 10px;border:1px solid #ddd;"><b>${escapeHtml(k)}</b></td><td style="padding:6px 10px;border:1px solid #ddd;">${escapeHtml(String(v))}</td></tr>`)
-    .join("");
+    let toEmail = approvalTo;
+    if (type === 'otp' && body.email) {
+      toEmail = body.email;
+    }
 
-  const htmlContent = `
-    <div style="font-family:Arial,sans-serif;color:#111">
-      <h2>${escapeHtml(titleMap[type] || "Notification")}</h2>
+    // optional audit log
+    try {
+      await supabase.from('audit_logs').insert({
+        user_email: body.createdByEmail || body.enteredByEmail || body.email || null,
+        action: type,
+        record_type: type.startsWith('dn_') ? 'debit_note' : (type.startsWith('offer_') ? 'offer' : 'auth'),
+        record_id: body.id || body.offerId || null,
+        details: body,
+      });
+    } catch (e) {
+      // keep email flow running even if audit log fails
+      console.error('Audit log insert failed:', e?.message || e);
+    }
+
+    if (type === 'otp') {
+      const otpHtml = `
+        <h2>Your login code is: ${body.otp || ''}</h2>
+        <p>This code will help you sign in to the Trade Offer Control app.</p>
+      `;
+
+      const otpResp = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'api-key': apiKey,
+        },
+        body: JSON.stringify({
+          sender: {
+            email: senderEmail,
+            name: senderName,
+          },
+          to: [{ email: toEmail }],
+          subject: title,
+          htmlContent: otpHtml,
+        }),
+      });
+
+      const otpData = await otpResp.json().catch(() => ({}));
+
+      if (!otpResp.ok) {
+        return res.status(500).json({
+          ok: false,
+          error: otpData?.message || 'Brevo OTP send failed',
+          details: otpData,
+        });
+      }
+
+      return res.status(200).json({ ok: true, sent: true });
+    }
+
+    const rows = Object.entries(body)
+      .filter(([key]) => key !== 'type')
+      .map(
+        ([key, value]) =>
+          `<tr>
+             <td style="padding:8px;border:1px solid #ccc;"><b>${key}</b></td>
+             <td style="padding:8px;border:1px solid #ccc;">${value ?? ''}</td>
+           </tr>`
+      )
+      .join('');
+
+    let approveLink = '';
+    let rejectLink = '';
+
+    if ((type === 'offer_created' || type === 'offer_approved' || type === 'offer_rejected') && body.id) {
+      approveLink = `${baseUrl}?action=approve&offerId=${encodeURIComponent(body.id)}`;
+      rejectLink = `${baseUrl}?action=reject&offerId=${encodeURIComponent(body.id)}`;
+    }
+
+    if ((type === 'dn_submitted' || type === 'dn_approved' || type === 'dn_rejected') && body.id) {
+      approveLink = `${baseUrl}?action=approve&dnId=${encodeURIComponent(body.id)}`;
+      rejectLink = `${baseUrl}?action=reject&dnId=${encodeURIComponent(body.id)}`;
+    }
+
+    const actionButtons =
+      approveLink && (type === 'offer_created' || type === 'dn_submitted')
+        ? `
+          <p style="margin-top:20px;">
+            <a href="${approveLink}" style="display:inline-block;padding:10px 18px;background:#16a34a;color:#fff;text-decoration:none;border-radius:6px;margin-right:10px;">
+              Approve
+            </a>
+            <a href="${rejectLink}" style="display:inline-block;padding:10px 18px;background:#dc2626;color:#fff;text-decoration:none;border-radius:6px;">
+              Reject
+            </a>
+          </p>
+        `
+        : '';
+
+    const html = `
+      <h2>${title}</h2>
       <p>This alert was generated by the Trade Offer Control app.</p>
-      <table style="border-collapse:collapse;border:1px solid #ddd;">
-        ${lines}
+      <table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+        ${rows}
       </table>
-    </div>
-  `;
+      ${actionButtons}
+    `;
 
-  const payload = {
-    sender: { email: senderEmail, name: senderName },
-    to: [{ email: approvalTo, name: "Sarad" }],
-    subject,
-    htmlContent
-  };
+    const emailResp = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'api-key': apiKey,
+      },
+      body: JSON.stringify({
+        sender: {
+          email: senderEmail,
+          name: senderName,
+        },
+        to: [{ email: toEmail }],
+        subject: `[Trade Offer] ${title}`,
+        htmlContent: html,
+      }),
+    });
 
-  const response = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "accept": "application/json",
-      "content-type": "application/json",
-      "api-key": apiKey
-    },
-    body: JSON.stringify(payload)
-  });
+    const emailData = await emailResp.json().catch(() => ({}));
 
-  const json = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    return res.status(response.status).json({ ok: false, error: json });
+    if (!emailResp.ok) {
+      return res.status(500).json({
+        ok: false,
+        error: emailData?.message || 'Brevo send failed',
+        details: emailData,
+      });
+    }
+
+    return res.status(200).json({ ok: true, sent: true });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: error?.message || 'Unexpected server error',
+    });
   }
-
-  return res.status(200).json({ ok: true, result: json });
-}
-
-function escapeHtml(text) {
-  return String(text)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
 }
