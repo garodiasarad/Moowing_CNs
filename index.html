@@ -465,7 +465,7 @@
 
 const SUPABASE_URL = "https://ivhczivvmepfzydwmxqf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_grtvVAM8anWtNIsgfALv_w_bw1qSev-";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let state = { offers: [], debitNotes: [] };
 let currentUser = null;
@@ -567,7 +567,7 @@ function logout(){
 }
 
 async function loadOffers(){
-  const { data, error } = await supabase.from("offers").select("*").order("created_at", {ascending:false});
+  const { data, error } = await sb.from("offers").select("*").order("created_at", {ascending:false});
   if(error){ alert("Offer load failed: " + error.message); return []; }
   return (data || []).map(o => ({
     id: o.id, customer:o.customer, sku:o.sku, mrp:o.mrp, sellingPrice:o.selling_price,
@@ -577,7 +577,7 @@ async function loadOffers(){
   }));
 }
 async function loadDebitNotes(){
-  const { data, error } = await supabase.from("debit_notes").select("*").order("created_at", {ascending:false});
+  const { data, error } = await sb.from("debit_notes").select("*").order("created_at", {ascending:false});
   if(error){ console.warn("Debit note load failed:", error.message); return []; }
   return (data || []).map(d => ({
     id:d.id, offerId:d.offer_id, dnNumber:d.dn_number, dnDate:d.dn_date, dnFrom:d.dn_from, dnTo:d.dn_to,
@@ -661,7 +661,7 @@ saveOfferBtn.addEventListener("click", async () => {
     approved_by: null,
     approved_date: null
   };
-  const { error } = await supabase.from("offers").insert([offer]);
+  const { error } = await sb.from("offers").insert([offer]);
   if(error){ alert("Save failed: " + error.message); return; }
   await postApprovalEmail({
     type: "offer_created", id: offer.id, customer: offer.customer, sku: offer.sku,
@@ -678,7 +678,7 @@ clearFormBtn.addEventListener("click", clearForm);
 async function approveOffer(id){
   const offer = getOfferById(id);
   if(!offer || !isApprover()) return;
-  const { error } = await supabase.from("offers").update({
+  const { error } = await sb.from("offers").update({
     status:"Approved", approved_by: currentUser.email, approved_date: new Date().toISOString()
   }).eq("id", id);
   if(error){ alert("Approve failed: " + error.message); return; }
@@ -688,7 +688,7 @@ async function approveOffer(id){
 async function rejectOffer(id){
   const offer = getOfferById(id);
   if(!offer || !isApprover()) return;
-  const { error } = await supabase.from("offers").update({ status:"Rejected", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
+  const { error } = await sb.from("offers").update({ status:"Rejected", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
   if(error){ alert("Reject failed: " + error.message); return; }
   await postApprovalEmail({ type:"offer_rejected", id:offer.id, customer:offer.customer, sku:offer.sku, createdByEmail:offer.createdByEmail });
   await loadAllData();
@@ -697,7 +697,7 @@ async function deleteOffer(id){
   const offer = getOfferById(id);
   if(!offer || offer.status !== "Draft"){ alert("Only draft offers can be deleted."); return; }
   if(!confirm("Delete this draft offer?")) return;
-  const { error } = await supabase.from("offers").delete().eq("id", id);
+  const { error } = await sb.from("offers").delete().eq("id", id);
   if(error){ alert("Delete failed: " + error.message); return; }
   await loadAllData();
 }
@@ -786,7 +786,7 @@ addDnBtn.addEventListener("click", async () => {
     actual_qty: qty, claim_amount: claimAmount, remarks: dnRemarks.value.trim(), customer: offer.customer, sku: offer.sku, avf: offer.avf,
     entered_by_email: currentUser.email, dn_status: "Submitted", approved_by: null, approved_date: null
   };
-  const { error } = await supabase.from("debit_notes").insert([dn]);
+  const { error } = await sb.from("debit_notes").insert([dn]);
   if(error){ alert("DN save failed: " + error.message); return; }
   dnNumber.value=""; dnDate.value=""; dnFrom.value=""; dnTo.value=""; actualQty.value=""; claimAmountPreview.value=""; dnRemarks.value=""; dnOfferSelect.value="";
   await postApprovalEmail({ type:"dn_submitted", id: dn.id, dnNumber: dn.dn_number, offerId: dn.offer_id, customer: dn.customer, sku: dn.sku, actualQty: dn.actual_qty, claimAmount: dn.claim_amount, enteredByEmail: dn.entered_by_email });
@@ -795,7 +795,7 @@ addDnBtn.addEventListener("click", async () => {
 async function approveDN(id){
   const dn = state.debitNotes.find(d => d.id === id);
   if(!dn || !isApprover()) return;
-  const { error } = await supabase.from("debit_notes").update({ dn_status:"Approved", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
+  const { error } = await sb.from("debit_notes").update({ dn_status:"Approved", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
   if(error){ alert("DN approve failed: " + error.message); return; }
   await postApprovalEmail({ type:"dn_approved", id:dn.id, dnNumber:dn.dnNumber, offerId:dn.offerId, customer:dn.customer, sku:dn.sku, actualQty:dn.actualQty, claimAmount:dn.claimAmount, enteredByEmail:dn.enteredByEmail || "" });
   await loadAllData();
@@ -803,7 +803,7 @@ async function approveDN(id){
 async function rejectDN(id){
   const dn = state.debitNotes.find(d => d.id === id);
   if(!dn || !isApprover()) return;
-  const { error } = await supabase.from("debit_notes").update({ dn_status:"Rejected", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
+  const { error } = await sb.from("debit_notes").update({ dn_status:"Rejected", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
   if(error){ alert("DN reject failed: " + error.message); return; }
   await postApprovalEmail({ type:"dn_rejected", id:dn.id, dnNumber:dn.dnNumber, offerId:dn.offerId, customer:dn.customer, sku:dn.sku, actualQty:dn.actualQty, claimAmount:dn.claimAmount, enteredByEmail:dn.enteredByEmail || "" });
   await loadAllData();
