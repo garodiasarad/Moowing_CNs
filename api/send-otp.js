@@ -1,57 +1,69 @@
-import { createClient } from '@supabase/supabase-js';
-
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ ok: false, error: "Method not allowed" });
   }
 
-  const { email } = req.body;
+  try {
+    const { email } = req.body || {};
 
-  if (!email) {
-    return res.status(400).json({ error: 'Email required' });
-  }
+    if (!email) {
+      return res.status(400).json({ ok: false, error: "Email required" });
+    }
 
-  const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_SERVICE_KEY
-  );
+    const apiKey = process.env.BREVO_API_KEY;
+    const senderEmail = process.env.BREVO_SENDER_EMAIL;
+    const senderName = process.env.BREVO_SENDER_NAME || "NowTech AI";
 
-  // check user exists
-  const { data: user } = await supabase
-    .from('app_users')
-    .select('*')
-    .eq('email', email)
-    .single();
+    if (!apiKey || !senderEmail) {
+      return res.status(500).json({
+        ok: false,
+        error: "Missing Brevo environment variables",
+      });
+    }
 
-  if (!user) {
-    return res.status(403).json({ error: 'User not allowed' });
-  }
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-
-  await supabase.from('otp_codes').insert({
-    email,
-    code,
-    expires_at: new Date(Date.now() + 10 * 60 * 1000) // 10 min
-  });
-
-  // send email via Brevo
-  await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "api-key": process.env.BREVO_API_KEY
-    },
-    body: JSON.stringify({
-      sender: {
-        email: process.env.BREVO_SENDER_EMAIL,
-        name: process.env.BREVO_SENDER_NAME
+    const response = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        "Content-Type": "application/json",
       },
-      to: [{ email }],
-      subject: "Your Login Code",
-      htmlContent: `<h2>Your login code is: ${code}</h2>`
-    })
-  });
+      body: JSON.stringify({
+        sender: {
+          email: senderEmail,
+          name: senderName,
+        },
+        to: [{ email }],
+        subject: "Your Login Code",
+        htmlContent: `
+          <div style="font-family: Arial, sans-serif; line-height:1.5;">
+            <h2>Your login code is: ${otp}</h2>
+            <p>Use this 6-digit code to sign in to NowTech AI - Trade Offer Control.</p>
+            <p>This is a temporary testing version.</p>
+          </div>
+        `,
+      }),
+    });
 
-  res.json({ success: true });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      return res.status(500).json({
+        ok: false,
+        error: data?.message || "Brevo send failed",
+        details: data,
+      });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      otp, // temporary for testing only
+    });
+  } catch (error) {
+    return res.status(500).json({
+      ok: false,
+      error: error?.message || "Unexpected server error",
+    });
+  }
 }
