@@ -5,889 +5,1068 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>NowTech AI - Trade Offer Control</title>
 <style>
-  :root{
-    --bg:#f4f7fb;
-    --card:#ffffff;
-    --nav:#0f172a;
-    --nav2:#172554;
-    --text:#1f2937;
-    --muted:#64748b;
-    --line:#e2e8f0;
-    --primary:#2563eb;
-    --primary2:#1d4ed8;
-    --success:#16a34a;
-    --warning:#d97706;
-    --danger:#dc2626;
-    --chip:#eff6ff;
-    --shadow:0 10px 30px rgba(15,23,42,.08);
-    --radius:18px;
-  }
-  *{box-sizing:border-box}
-  body{
-    margin:0;
-    font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
-    color:var(--text);
-    background:var(--bg);
-  }
-  .app{display:grid; grid-template-columns: 300px 1fr; min-height:100vh}
-  .sidebar{
-    background:linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
-    color:#fff;
-    padding:22px 18px;
-    position:sticky; top:0; height:100vh;
-  }
-  .brand{
-    display:flex; align-items:center; gap:14px; margin:8px 4px 24px;
-  }
-  .logo{
-    width:54px; height:54px; border-radius:16px;
-    background:linear-gradient(135deg,#06b6d4,#2563eb);
-    display:grid; place-items:center; font-weight:800; font-size:22px;
-    box-shadow:0 10px 20px rgba(37,99,235,.35);
-  }
-  .brand h1{margin:0; font-size:28px; line-height:1}
-  .brand p{margin:4px 0 0; color:#cbd5e1; font-size:15px}
-  .nav button{
-    width:100%; border:1px solid rgba(255,255,255,.08); background:rgba(255,255,255,.03);
-    color:#fff; text-align:left; padding:14px 16px; border-radius:16px; margin-bottom:12px;
-    font-size:18px; cursor:pointer;
-  }
-  .nav button.active, .nav button:hover{
-    background:rgba(37,99,235,.18); border-color:rgba(96,165,250,.38);
-  }
-  .rules{
-    margin-top:28px; padding:18px; background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.08);
-    border-radius:22px;
-  }
-  .rules h3{margin:0 0 14px; font-size:22px}
-  .rules ul{margin:0; padding-left:22px; color:#e2e8f0}
-  .rules li{margin:10px 0; font-size:16px}
-  .main{padding:28px}
-  .toolbar{
-    display:flex; justify-content:space-between; gap:14px; align-items:center; margin-bottom:24px;
-  }
-  .toolbar h2{font-size:30px; margin:0}
-  .toolbar p{margin:6px 0 0; color:var(--muted); font-size:18px}
-  .toolbar-right{display:flex; gap:12px; flex-wrap:wrap}
-  .btn{
-    border:none; background:var(--primary); color:#fff; padding:13px 18px; border-radius:14px;
-    font-weight:700; cursor:pointer; box-shadow:var(--shadow); font-size:16px;
-  }
-  .btn:hover{background:var(--primary2)}
-  .btn.secondary{background:#e2e8f0; color:#0f172a; box-shadow:none}
-  .btn.success{background:var(--success)}
-  .btn.warning{background:var(--warning)}
-  .btn.danger{background:var(--danger)}
-  .hidden{display:none!important}
-  .cards{
-    display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:24px;
-  }
-  .card{
-    background:var(--card); border-radius:24px; padding:20px 22px; box-shadow:var(--shadow); border:1px solid #eef2f7;
-  }
-  .metric-label{color:var(--muted); font-size:16px; margin-bottom:8px}
-  .metric-value{font-size:24px; font-weight:800}
-  .panel-grid{
-    display:grid; grid-template-columns:1.15fr .85fr; gap:18px;
-  }
-  .section{display:none}
-  .section.active{display:block}
-  .empty{
-    border:2px dashed var(--line); border-radius:18px; padding:18px; color:var(--muted); background:#fafcff;
-  }
-  .form-card{
-    background:var(--card); padding:24px; border-radius:24px; box-shadow:var(--shadow); border:1px solid #eef2f7;
-  }
-  .form-grid{
-    display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
-  }
-  .field label{
-    display:block; margin-bottom:8px; font-size:14px; font-weight:700; color:#334155;
-  }
-  .field input, .field select, .field textarea{
-    width:100%; border:1px solid #cbd5e1; border-radius:14px; padding:12px 13px; font-size:15px; background:#fff;
-  }
-  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid #bfdbfe; border-color:#60a5fa}
-  .field small{display:block; margin-top:6px; color:var(--muted)}
-  .span-2{grid-column:span 2}
-  .span-4{grid-column:span 4}
-  .actions{display:flex; gap:12px; margin-top:18px; flex-wrap:wrap}
-  .table-wrap{
-    background:var(--card); border-radius:24px; box-shadow:var(--shadow); overflow:auto; border:1px solid #eef2f7;
-  }
-  table{width:100%; border-collapse:collapse; min-width:1280px}
-  th, td{padding:14px 12px; border-bottom:1px solid #eef2f7; font-size:14px; vertical-align:top}
-  th{background:#f8fbff; text-align:left; color:#475569; position:sticky; top:0}
-  tr:hover td{background:#fcfdff}
-  .chip{
-    display:inline-block; padding:6px 10px; border-radius:999px; background:#f1f5f9; font-size:12px; font-weight:700;
-  }
-  .chip.draft{background:#fff7ed; color:#b45309}
-  .chip.approved{background:#ecfdf5; color:#15803d}
-  .chip.rejected{background:#fef2f2; color:#b91c1c}
-  .chip.dn{background:#eff6ff; color:#1d4ed8}
-  .row-actions{display:flex; gap:8px; flex-wrap:wrap}
-  .tiny{padding:8px 10px; border-radius:10px; font-size:12px; box-shadow:none}
-  .muted{color:var(--muted)}
-  .report-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:18px}
-  .mono{font-variant-numeric:tabular-nums}
-  .footer-note{margin-top:14px; color:var(--muted); font-size:14px}
-  
-  #loginScreen{
-    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
-    background:#eef3f8; z-index:9999;
-  }
-  .login-box{
-    width:360px; background:#fff; border-radius:22px; padding:28px; box-shadow:var(--shadow);
-    border:1px solid #e5e7eb;
-  }
-  .login-box h2{margin:0 0 8px; font-size:30px}
-  .login-box p{margin:0 0 18px; color:var(--muted)}
-  .login-box .btn{width:100%; margin-top:12px}
-  .login-status{margin-top:12px; color:var(--muted); font-size:14px}
-  .app.hidden{display:none}
-  .user-chip{
-    display:flex; align-items:center; gap:10px; background:#fff; border:1px solid #e2e8f0; border-radius:14px; padding:10px 12px;
-  }
-  .user-chip strong{font-size:14px}
-  .user-chip span{font-size:12px; color:var(--muted)}
-
-  @media (max-width: 1200px){
-    .cards{grid-template-columns:repeat(2,1fr)}
-    .form-grid{grid-template-columns:repeat(2,1fr)}
-    .panel-grid,.report-grid{grid-template-columns:1fr}
-  }
-  @media (max-width: 900px){
-    .app{grid-template-columns:1fr}
-    .sidebar{position:relative; height:auto}
-    .main{padding:18px}
-    .cards{grid-template-columns:1fr}
-    .form-grid{grid-template-columns:1fr}
-    .span-2,.span-4{grid-column:span 1}
-    .toolbar{flex-direction:column; align-items:flex-start}
-  }
+:root{
+--bg:#f4f7fb;
+--card:#ffffff;
+--nav:#0f172a;
+--nav2:#172554;
+--text:#1f2937;
+--muted:#64748b;
+--line:#e2e8f0;
+--primary:#2563eb;
+--primary2:#1d4ed8;
+--success:#16a34a;
+--warning:#d97706;
+--danger:#dc2626;
+--chip:#eff6ff;
+--shadow:0 10px 30px rgba(15,23,42,.08);
+--radius:18px;
+}
+*{box-sizing:border-box}
+body{
+margin:0;
+font-family: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont,
+"Segoe UI", Roboto, Arial, sans-serif;
+color:var(--text);
+background:var(--bg);
+}
+.app{display:grid; grid-template-columns: 300px 1fr; min-height:100vh}
+.sidebar{
+background:linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
+color:#fff;
+padding:22px 18px;
+position:sticky; top:0; height:100vh;
+}
+.brand{
+display:flex; align-items:center; gap:14px; margin:8px 4px 24px;
+}
+.logo{
+width:54px; height:54px; border-radius:16px;
+background:linear-gradient(135deg,#06b6d4,#2563eb);
+display:grid; place-items:center; font-weight:800; font-size:22px;
+box-shadow:0 10px 20px rgba(37,99,235,.35);
+}
+.brand h1{margin:0; font-size:28px; line-height:1}
+.brand p{margin:4px 0 0; color:#cbd5e1; font-size:15px}
+.nav button{
+width:100%; border:1px solid rgba(255,255,255,.08);
+background:rgba(255,255,255,.03);
+color:#fff; text-align:left; padding:14px 16px; border-radius:16px;
+margin-bottom:12px;
+font-size:18px; cursor:pointer;
+}
+.nav button.active, .nav button:hover{
+background:rgba(37,99,235,.18); border-color:rgba(96,165,250,.38);
+}
+.rules{
+margin-top:28px; padding:18px; background:rgba(255,255,255,.05);
+border:1px solid rgba(255,255,255,.08);
+border-radius:22px;
+}
+.rules h3{margin:0 0 14px; font-size:22px}
+.rules ul{margin:0; padding-left:22px; color:#e2e8f0}
+.rules li{margin:10px 0; font-size:16px}
+.main{padding:28px}
+.toolbar{
+display:flex; justify-content:space-between; gap:14px;
+align-items:center; margin-bottom:24px;
+}
+.toolbar h2{font-size:30px; margin:0}
+.toolbar p{margin:6px 0 0; color:var(--muted); font-size:18px}
+.toolbar-right{display:flex; gap:12px; flex-wrap:wrap}
+.btn{
+border:none; background:var(--primary); color:#fff; padding:13px 18px;
+border-radius:14px;
+font-weight:700; cursor:pointer; box-shadow:var(--shadow);
+font-size:16px;
+}
+.btn:hover{background:var(--primary2)}
+.btn.secondary{background:#e2e8f0; color:#0f172a; box-shadow:none}
+.btn.success{background:var(--success)}
+.btn.warning{background:var(--warning)}
+.btn.danger{background:var(--danger)}
+.hidden{display:none!important}
+.cards{
+display:grid; grid-template-columns:repeat(4,1fr); gap:18px;
+margin-bottom:24px;
+}
+.card{
+background:var(--card); border-radius:24px; padding:20px 22px;
+box-shadow:var(--shadow); border:1px solid #eef2f7;
+}
+.metric-label{color:var(--muted); font-size:16px; margin-bottom:8px}
+.metric-value{font-size:24px; font-weight:800}
+.panel-grid{
+display:grid; grid-template-columns:1.15fr .85fr; gap:18px;
+}
+.section{display:none}
+.section.active{display:block}
+.empty{
+border:2px dashed var(--line); border-radius:18px; padding:18px;
+color:var(--muted); background:#fafcff;
+}
+.form-card{
+background:var(--card); padding:24px; border-radius:24px;
+box-shadow:var(--shadow); border:1px solid #eef2f7;
+}
+.form-grid{
+display:grid; grid-template-columns:repeat(4,1fr); gap:16px;
+}
+.field label{
+display:block; margin-bottom:8px; font-size:14px; font-weight:700;
+color:#334155;
+}
+.field input, .field select, .field textarea{
+width:100%; border:1px solid #cbd5e1; border-radius:14px; padding:12px
+13px; font-size:15px; background:#fff;
+}
+.field input:focus, .field select:focus, .field
+textarea:focus{outline:2px solid #bfdbfe; border-color:#60a5fa}
+.field small{display:block; margin-top:6px; color:var(--muted)}
+.span-2{grid-column:span 2}
+.span-4{grid-column:span 4}
+.actions{display:flex; gap:12px; margin-top:18px; flex-wrap:wrap}
+.table-wrap{
+background:var(--card); border-radius:24px; box-shadow:var(--shadow);
+overflow:auto; border:1px solid #eef2f7;
+}
+table{width:100%; border-collapse:collapse; min-width:1280px}
+th, td{padding:14px 12px; border-bottom:1px solid #eef2f7;
+font-size:14px; vertical-align:top}
+th{background:#f8fbff; text-align:left; color:#475569; position:sticky;
+top:0}
+tr:hover td{background:#fcfdff}
+.chip{
+display:inline-block; padding:6px 10px; border-radius:999px;
+background:#f1f5f9; font-size:12px; font-weight:700;
+}
+.chip.draft{background:#fff7ed; color:#b45309}
+.chip.approved{background:#ecfdf5; color:#15803d}
+.chip.rejected{background:#fef2f2; color:#b91c1c}
+.chip.dn{background:#eff6ff; color:#1d4ed8}
+.row-actions{display:flex; gap:8px; flex-wrap:wrap}
+.tiny{padding:8px 10px; border-radius:10px; font-size:12px;
+box-shadow:none}
+.muted{color:var(--muted)}
+.report-grid{display:grid; grid-template-columns:repeat(3,1fr);
+gap:18px}
+.mono{font-variant-numeric:tabular-nums}
+.footer-note{margin-top:14px; color:var(--muted); font-size:14px}
+#loginScreen{
+position:fixed; inset:0; display:flex; align-items:center;
+justify-content:center;
+background:#eef3f8; z-index:9999;
+}
+.login-box{
+width:360px; background:#fff; border-radius:22px; padding:28px;
+box-shadow:var(--shadow);
+border:1px solid #e5e7eb;
+}
+.login-box h2{margin:0 0 8px; font-size:30px}
+.login-box p{margin:0 0 18px; color:var(--muted)}
+.login-box .btn{width:100%; margin-top:12px}
+.login-status{margin-top:12px; color:var(--muted); font-size:14px}
+.app.hidden{display:none}
+.user-chip{
+display:flex; align-items:center; gap:10px; background:#fff; border:1px
+solid #e2e8f0; border-radius:14px; padding:10px 12px;
+}
+.user-chip strong{font-size:14px}
+.user-chip span{font-size:12px; color:var(--muted)}
+@media (max-width: 1200px){
+.cards{grid-template-columns:repeat(2,1fr)}
+.form-grid{grid-template-columns:repeat(2,1fr)}
+.panel-grid,.report-grid{grid-template-columns:1fr}
+}
+@media (max-width: 900px){
+.app{grid-template-columns:1fr}
+.sidebar{position:relative; height:auto}
+.main{padding:18px}
+.cards{grid-template-columns:1fr}
+.form-grid{grid-template-columns:1fr}
+.span-2,.span-4{grid-column:span 1}
+.toolbar{flex-direction:column; align-items:flex-start}
+}
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script
+src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 <div id="loginScreen">
-  <div class="login-box">
-    <h2>Login</h2>
-    <p>Enter your work email to receive a 6-digit code.</p>
-    <div class="field">
-      <label>Email</label>
-      <input id="loginEmail" type="email" placeholder="name@company.com" />
-    </div>
-    <button class="btn" id="sendOtpBtn">Send Code</button>
-    <div class="field">
-      <label>6-digit code</label>
-      <input id="loginOtp" inputmode="numeric" maxlength="6" placeholder="Enter code" />
-    </div>
-    <button class="btn success" id="verifyOtpBtn">Verify & Login</button>
-    <div class="login-status" id="loginStatus"></div>
-  </div>
+<div class="login-box">
+<h2>Login</h2>
+<p>Enter your work email to receive a 6-digit code.</p>
+<div class="field">
+<label>Email</label>
+<input id="loginEmail" type="email" placeholder="name@company.com" />
+</div>
+<button class="btn" id="sendOtpBtn">Send Code</button>
+<div class="field">
+<label>6-digit code</label>
+<input id="loginOtp" inputmode="numeric" maxlength="6"
+placeholder="Enter code" />
+</div>
+<button class="btn success" id="verifyOtpBtn">Verify & Login</button>
+<div class="login-status" id="loginStatus"></div>
+</div>
 </div>
 <div id="appShell" class="app hidden">
-  <aside class="sidebar">
-    <div class="brand">
-      <div class="logo">NT</div>
-      <div>
-        <h1>NowTech AI</h1>
-        <p>Trade Offer Control</p>
-      </div>
-    </div>
-    <div class="nav">
-      <button class="nav-btn active" data-target="dashboard">Dashboard</button>
-      <button class="nav-btn" data-target="create">Create Offer</button>
-      <button class="nav-btn" data-target="offers">Offers</button>
-      <button class="nav-btn" data-target="debit">Debit Notes</button>
-      <button class="nav-btn" data-target="reports">Reports</button>
-    </div>
-    <div class="rules">
-      <h3>Control Rules</h3>
-      <ul>
-        <li>Draft offers can be edited and deleted.</li>
-        <li>Only approved offers can receive debit notes.</li>
-        <li>Approved offer price, invoice price, AVF, and dates are locked.</li>
-        <li>Claim amount is auto-calculated as <b>AVF × Actual Qty</b>.</li>
-      </ul>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="toolbar">
-      <div>
-        <h2 id="pageTitle">Dashboard</h2>
-        <p id="pageSubtitle">Controlled workflow for trade promotions and debit note settlement.</p>
-      </div>
-      <div class="toolbar-right">
-        <div class="user-chip">
-          <div>
-            <strong id="loggedUserName">Not logged in</strong><br>
-            <span id="loggedUserRole">-</span>
-          </div>
-        </div>
-        <button class="btn secondary" id="logoutBtn">Logout</button>
-        <button class="btn secondary" id="sampleBtn">Load Sample Data</button>
-        <button class="btn secondary" id="resetBtn">Reset Data</button>
-        <button class="btn" id="exportBtn">Export JSON</button>
-      </div>
-    </div>
-
-    <section class="section active" id="dashboard">
-      <div class="cards">
-        <div class="card">
-          <div class="metric-label">Total Offers</div>
-          <div class="metric-value mono" id="mTotalOffers">0</div>
-        </div>
-        <div class="card">
-          <div class="metric-label">Pending Approval</div>
-          <div class="metric-value mono" id="mPending">0</div>
-        </div>
-        <div class="card">
-          <div class="metric-label">Approved Offers</div>
-          <div class="metric-value mono" id="mApproved">0</div>
-        </div>
-        <div class="card">
-          <div class="metric-label">Total DN Amount (₹)</div>
-          <div class="metric-value mono" id="mDnAmount">0.00</div>
-        </div>
-      </div>
-      <div class="panel-grid">
-        <div class="card">
-          <h3>Pending Approvals</h3>
-          <div id="pendingBox" class="empty">No pending approvals.</div>
-        </div>
-        <div class="card">
-          <h3>Recent Debit Notes</h3>
-          <div id="recentDnBox" class="empty">No debit notes added yet.</div>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="create">
-      <div class="form-card">
-        <h3>Create Offer</h3>
-        <div class="form-grid">
-          <div class="field">
-            <label>Customer</label>
-            <input list="customerSuggestions" id="customer" placeholder="Select or type customer name" />
-            <datalist id="customerSuggestions"></datalist>
-          </div>
-          <div class="field">
-            <label>SKU / Product</label>
-            <input list="skuSuggestions" id="sku" placeholder="Select or type SKU / product" />
-            <datalist id="skuSuggestions"></datalist>
-          </div>
-          <div class="field">
-            <label>MRP (₹)</label>
-            <input id="mrp" type="number" step="0.01" placeholder="0.00" />
-          </div>
-          <div class="field">
-            <label>Current Selling Price (₹)</label>
-            <input id="sellingPrice" type="number" step="0.01" placeholder="0.00" />
-          </div>
-
-          <div class="field">
-            <label>Offer Price to Consumer (₹)</label>
-            <input id="offerPrice" type="number" step="0.01" placeholder="0.00" />
-          </div>
-          <div class="field">
-            <label>Invoice Price (₹)</label>
-            <input id="invoicePrice" type="number" step="0.01" placeholder="0.00" />
-          </div>
-          <div class="field">
-            <label>AVF per Unit (₹)</label>
-            <input id="avf" type="number" step="0.01" placeholder="0.00" />
-          </div>
-          <div class="field">
-            <label>Estimated Qty</label>
-            <input id="estimatedQty" type="number" step="1" placeholder="0" />
-          </div>
-
-          <div class="field">
-            <label>Offer Start Date</label>
-            <input id="startDate" type="date" />
-          </div>
-          <div class="field">
-            <label>Offer End Date</label>
-            <input id="endDate" type="date" />
-          </div>
-          <div class="field span-2">
-            <label>Email / Approval Reference</label>
-            <input id="emailRef" placeholder="Email subject / thread / remark" />
-          </div>
-          <div class="field span-2">
-            <label>Created By Email</label>
-            <input id="createdByEmail" type="email" placeholder="team member email" readonly />
-          </div>
-
-          <div class="field span-4">
-            <label>Notes</label>
-            <textarea id="notes" rows="3" placeholder="Optional internal notes"></textarea>
-          </div>
-        </div>
-        <div class="actions">
-          <button class="btn" id="saveOfferBtn">Save Draft Offer</button>
-          <button class="btn secondary" id="clearFormBtn">Clear Form</button>
-        </div>
-        <div class="footer-note">Tip: customer and SKU fields keep reusable suggestions from past entries, so repeat selection is faster.</div>
-      </div>
-    </section>
-
-    <section class="section" id="offers">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Offer ID</th>
-              <th>Customer</th>
-              <th>SKU</th>
-              <th>MRP</th>
-              <th>Selling</th>
-              <th>Offer</th>
-              <th>Invoice</th>
-              <th>AVF</th>
-              <th>Period</th>
-              <th>Est. Qty</th>
-              <th>Status</th>
-              <th>Approval</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody id="offersTbody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="section" id="debit">
-      <div class="form-card" style="margin-bottom:18px;">
-        <h3>Add Debit Note</h3>
-        <div class="form-grid">
-          <div class="field span-2">
-            <label>Approved Offer</label>
-            <select id="dnOfferSelect"></select>
-            <small>Only approved offers appear here.</small>
-          </div>
-          <div class="field">
-            <label>DN Number</label>
-            <input id="dnNumber" placeholder="Debit note number" />
-          </div>
-          <div class="field">
-            <label>DN Date</label>
-            <input id="dnDate" type="date" />
-          </div>
-
-          <div class="field">
-            <label>Claim Period From</label>
-            <input id="dnFrom" type="date" />
-          </div>
-          <div class="field">
-            <label>Claim Period To</label>
-            <input id="dnTo" type="date" />
-          </div>
-          <div class="field">
-            <label>Actual Qty Sold</label>
-            <input id="actualQty" type="number" step="1" placeholder="0" />
-          </div>
-          <div class="field">
-            <label>Claim Amount (Auto)</label>
-            <input id="claimAmountPreview" type="text" readonly />
-          </div>
-
-          <div class="field span-2">
-            <label>Entered By Email</label>
-            <input id="dnEnteredByEmail" type="email" placeholder="team member email" readonly />
-          </div>
-          <div class="field span-2">
-            <label>DN Remarks</label>
-            <textarea id="dnRemarks" rows="2" placeholder="Optional debit note remarks"></textarea>
-          </div>
-        </div>
-        <div class="actions">
-          <button class="btn success" id="addDnBtn">Save Debit Note</button>
-        </div>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>DN Number</th>
-              <th>DN Date</th>
-              <th>Customer</th>
-              <th>SKU</th>
-              <th>Offer ID</th>
-              <th>AVF</th>
-              <th>Actual Qty</th>
-              <th>Claim Amount</th>
-              <th>Claim Period</th>
-              <th>DN Status</th>
-              <th>Approval</th>
-              <th>Remarks</th>
-            </tr>
-          </thead>
-          <tbody id="dnTbody"></tbody>
-        </table>
-      </div>
-    </section>
-
-    <section class="section" id="reports">
-      <div class="report-grid">
-        <div class="card">
-          <div class="metric-label">Total Claim Amount (₹)</div>
-          <div class="metric-value mono" id="rTotalClaim">0.00</div>
-        </div>
-        <div class="card">
-          <div class="metric-label">Total Actual Qty</div>
-          <div class="metric-value mono" id="rTotalQty">0</div>
-        </div>
-        <div class="card">
-          <div class="metric-label">Avg AVF (₹)</div>
-          <div class="metric-value mono" id="rAvgAvf">0.00</div>
-        </div>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h3>Customer Summary</h3>
-        <div id="customerSummary" class="empty">No customer data yet.</div>
-      </div>
-
-      <div class="card" style="margin-top:18px;">
-        <h3>SKU Summary</h3>
-        <div id="skuSummary" class="empty">No SKU data yet.</div>
-      </div>
-    </section>
-  </main>
+<aside class="sidebar">
+<div class="brand">
+<div class="logo">NT</div>
+<div>
+<h1>NowTech AI</h1>
+<p>Trade Offer Control</p>
 </div>
-
+</div>
+<div class="nav">
+<button class="nav-btn active"
+data-target="dashboard">Dashboard</button>
+<button class="nav-btn" data-target="create">Create Offer</button>
+<button class="nav-btn" data-target="offers">Offers</button>
+<button class="nav-btn" data-target="debit">Debit Notes</button>
+<button class="nav-btn" data-target="reports">Reports</button>
+</div>
+<div class="rules">
+<h3>Control Rules</h3>
+<ul>
+<li>Draft offers can be edited and deleted.</li>
+<li>Only approved offers can receive debit notes.</li>
+<li>Approved offer price, invoice price, AVF, and dates are locked.</li>
+<li>Claim amount is auto-calculated as <b>AVF × Actual Qty</b>.</li>
+</ul>
+</div>
+</aside>
+<main class="main">
+<div class="toolbar">
+<div>
+<h2 id="pageTitle">Dashboard</h2>
+<p id="pageSubtitle">Controlled workflow for trade promotions and debit
+note settlement.</p>
+</div>
+<div class="toolbar-right">
+<div class="user-chip">
+<div>
+<strong id="loggedUserName">Not logged in</strong><br>
+<span id="loggedUserRole">-</span>
+</div>
+</div>
+<button class="btn secondary" id="logoutBtn">Logout</button>
+<button class="btn secondary" id="sampleBtn">Load Sample Data</button>
+<button class="btn secondary" id="resetBtn">Reset Data</button>
+<button class="btn" id="exportBtn">Export JSON</button>
+</div>
+</div>
+<section class="section active" id="dashboard">
+<div class="cards">
+<div class="card">
+<div class="metric-label">Total Offers</div>
+<div class="metric-value mono" id="mTotalOffers">0</div>
+</div>
+<div class="card">
+<div class="metric-label">Pending Approval</div>
+<div class="metric-value mono" id="mPending">0</div>
+</div>
+<div class="card">
+<div class="metric-label">Approved Offers</div>
+<div class="metric-value mono" id="mApproved">0</div>
+</div>
+<div class="card">
+<div class="metric-label">Total DN Amount (₹)</div>
+<div class="metric-value mono" id="mDnAmount">0.00</div>
+</div>
+</div>
+<div class="panel-grid">
+<div class="card">
+<h3>Pending Approvals</h3>
+<div id="pendingBox" class="empty">No pending approvals.</div>
+</div>
+<div class="card">
+<h3>Recent Debit Notes</h3>
+<div id="recentDnBox" class="empty">No debit notes added yet.</div>
+</div>
+</div>
+</section>
+<section class="section" id="create">
+<div class="form-card">
+<h3>Create Offer</h3>
+<div class="form-grid">
+<div class="field">
+<label>Customer</label>
+<input list="customerSuggestions" id="customer" placeholder="Select or
+type customer name" />
+<datalist id="customerSuggestions"></datalist>
+</div>
+<div class="field">
+<label>SKU / Product</label>
+<input list="skuSuggestions" id="sku" placeholder="Select or type SKU /
+product" />
+<datalist id="skuSuggestions"></datalist>
+</div>
+<div class="field">
+<label>MRP (₹)</label>
+<input id="mrp" type="number" step="0.01" placeholder="0.00" />
+</div>
+<div class="field">
+<label>Current Selling Price (₹)</label>
+<input id="sellingPrice" type="number" step="0.01" placeholder="0.00" />
+</div>
+<div class="field">
+<label>Offer Price to Consumer (₹)</label>
+<input id="offerPrice" type="number" step="0.01" placeholder="0.00" />
+</div>
+<div class="field">
+<label>Invoice Price (₹)</label>
+<input id="invoicePrice" type="number" step="0.01" placeholder="0.00" />
+</div>
+<div class="field">
+<label>AVF per Unit (₹)</label>
+<input id="avf" type="number" step="0.01" placeholder="0.00" />
+</div>
+<div class="field">
+<label>Estimated Qty</label>
+<input id="estimatedQty" type="number" step="1" placeholder="0" />
+</div>
+<div class="field">
+<label>Offer Start Date</label>
+<input id="startDate" type="date" />
+</div>
+<div class="field">
+<label>Offer End Date</label>
+<input id="endDate" type="date" />
+</div>
+<div class="field">
+<label>Email Dt.</label>
+<input id="emailDt" type="date" />
+</div>
+<div class="field span-2">
+<label>Email / Approval Reference</label>
+<input id="emailRef" placeholder="Email subject / thread / remark" />
+</div>
+<div class="field">
+<label>Created By Email</label>
+<input id="createdByEmail" type="email" placeholder="team member email"
+readonly />
+</div>
+<div class="field span-4">
+<label>Notes</label>
+<textarea id="notes" rows="3" placeholder="Optional internal
+notes"></textarea>
+</div>
+</div>
+<div class="actions">
+<button class="btn" id="saveOfferBtn">Save Draft Offer</button>
+<button class="btn secondary" id="clearFormBtn">Clear Form</button>
+</div>
+<div class="footer-note">Tip: customer and SKU fields keep reusable
+suggestions from past entries, so repeat selection is faster.</div>
+</div>
+</section>
+<section class="section" id="offers">
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Offer ID</th>
+<th>Customer</th>
+<th>SKU</th>
+<th>MRP</th>
+<th>Selling</th>
+<th>Offer</th>
+<th>Invoice</th>
+<th>AVF</th>
+<th>Email Dt.</th>
+<th>Period</th>
+<th>Est. Qty</th>
+<th>Status</th>
+<th>Approval</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="offersTbody"></tbody>
+</table>
+</div>
+</section>
+<section class="section" id="debit">
+<div class="form-card" style="margin-bottom:18px;">
+<h3>Add Debit Note</h3>
+<div class="form-grid">
+<div class="field span-2">
+<label>Approved Offer</label>
+<select id="dnOfferSelect"></select>
+<small>Only approved offers appear here.</small>
+</div>
+<div class="field">
+<label>DN Number</label>
+<input id="dnNumber" placeholder="Debit note number" />
+</div>
+<div class="field">
+<label>DN Date</label>
+<input id="dnDate" type="date" />
+</div>
+<div class="field">
+<label>Claim Period From</label>
+<input id="dnFrom" type="date" />
+</div>
+<div class="field">
+<label>Claim Period To</label>
+<input id="dnTo" type="date" />
+</div>
+<div class="field">
+<label>Actual Qty Sold</label>
+<input id="actualQty" type="number" step="1" placeholder="0" />
+</div>
+<div class="field">
+<label>Claim Amount (Auto)</label>
+<input id="claimAmountPreview" type="text" readonly />
+</div>
+<div class="field span-2">
+<label>Entered By Email</label>
+<input id="dnEnteredByEmail" type="email" placeholder="team member
+email" readonly />
+</div>
+<div class="field span-2">
+<label>DN Remarks</label>
+<textarea id="dnRemarks" rows="2" placeholder="Optional debit note
+remarks"></textarea>
+</div>
+</div>
+<div class="actions">
+<button class="btn success" id="addDnBtn">Save Debit Note</button>
+</div>
+</div>
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>DN Number</th>
+<th>DN Date</th>
+<th>Customer</th>
+<th>SKU</th>
+<th>Offer ID</th>
+<th>AVF</th>
+<th>Actual Qty</th>
+<th>Claim Amount</th>
+<th>Claim Period</th>
+<th>DN Status</th>
+<th>Approval</th>
+<th>Remarks</th>
+</tr>
+</thead>
+<tbody id="dnTbody"></tbody>
+</table>
+</div>
+</section>
+<section class="section" id="reports">
+<div class="report-grid">
+<div class="card">
+<div class="metric-label">Total Claim Amount (₹)</div>
+<div class="metric-value mono" id="rTotalClaim">0.00</div>
+</div>
+<div class="card">
+<div class="metric-label">Total Actual Qty</div>
+<div class="metric-value mono" id="rTotalQty">0</div>
+</div>
+<div class="card">
+<div class="metric-label">Avg AVF (₹)</div>
+<div class="metric-value mono" id="rAvgAvf">0.00</div>
+</div>
+</div>
+<div class="card" style="margin-top:18px;">
+<h3>Customer Summary</h3>
+<div id="customerSummary" class="empty">No customer data yet.</div>
+</div>
+<div class="card" style="margin-top:18px;">
+<h3>SKU Summary</h3>
+<div id="skuSummary" class="empty">No SKU data yet.</div>
+</div>
+<div class="card" style="margin-top:18px;">
+<h3>Offer Register</h3>
+<div id="offerRegisterWrap" class="empty">No offers yet.</div>
+</div>
+</section>
+</main>
+</div>
 <script>
-
 const SUPABASE_URL = "https://ivhczivvmepfzydwmxqf.supabase.co";
 const SUPABASE_KEY = "sb_publishable_grtvVAM8anWtNIsgfALv_w_bw1qSev-";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
 let state = { offers: [], debitNotes: [] };
 let currentUser = null;
-
 function formatMoney(v){
-  const n = Number(v || 0);
-  return n.toLocaleString("en-IN", {minimumFractionDigits:2, maximumFractionDigits:2});
+const n = Number(v || 0);
+return n.toLocaleString("en-IN", {minimumFractionDigits:2,
+maximumFractionDigits:2});
 }
 function formatDate(v){
-  if(!v) return "";
-  return new Date(v).toLocaleDateString("en-GB");
+if(!v) return "";
+return new Date(v).toLocaleDateString("en-GB");
 }
 function uid(prefix){
-  return prefix + "-" + Math.random().toString(36).slice(2,8).toUpperCase();
+return prefix + "-" +
+Math.random().toString(36).slice(2,8).toUpperCase();
+}
+function getStoredList(key){
+try{
+return JSON.parse(localStorage.getItem(key) || "[]");
+}catch(e){ return []; }
+}
+function rememberValue(key, value){
+const v = String(value || "").trim();
+if(!v) return;
+const items = getStoredList(key);
+if(!items.includes(v)){ items.push(v); }
+localStorage.setItem(key, JSON.stringify(items.slice(-200)));
+}
+function buildNextOfferId(){
+const nums = state.offers
+.map(o => String(o.id || ""))
+.map(id => /^M(\d{4})$/.test(id) ? Number(id.slice(1)) : 0);
+const next = (Math.max(0, ...nums) + 1);
+if(next > 9999){ alert("Offer ID limit reached (M9999)."); throw new Error("Offer ID limit reached"); }
+return "M" + String(next).padStart(4, "0");
 }
 function escapeHtml(text){
-  return String(text ?? "")
-    .replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+return String(text ?? "")
+.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
+.replaceAll('"',"&quot;").replaceAll("'","&#039;");
 }
 function getOfferById(id){
-  return state.offers.find(o => o.id === id);
+return state.offers.find(o => o.id === id);
 }
 function isApprover(){
-  return currentUser && (currentUser.role === "approver" || currentUser.role === "admin");
+return currentUser && (currentUser.role === "approver" ||
+currentUser.role === "admin");
 }
-
 async function postApprovalEmail(payload){
-  try{
-    const res = await fetch("/api/send-approval", {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify(payload)
-    });
-    return await res.json();
-  }catch(e){
-    console.error(e);
-    return {ok:false, error:"Email request failed"};
-  }
+try{
+const res = await fetch("/api/send-approval", {
+method: "POST",
+headers: {"Content-Type":"application/json"},
+body: JSON.stringify(payload)
+});
+return await res.json();
+}catch(e){
+console.error(e);
+return {ok:false, error:"Email request failed"};
 }
-
+}
 function setLoginStatus(msg, isError=false){
-  loginStatus.textContent = msg || "";
-  loginStatus.style.color = isError ? "#dc2626" : "#64748b";
+loginStatus.textContent = msg || "";
+loginStatus.style.color = isError ? "#dc2626" : "#64748b";
 }
-
 async function sendOtp(){
-  const email = loginEmail.value.trim().toLowerCase();
-  if(!email){ setLoginStatus("Enter email", true); return; }
-  setLoginStatus("Sending code...");
-  const res = await fetch("/api/send-otp", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ email })
-  });
-  const data = await res.json().catch(()=>({}));
-  if(!res.ok){
-    setLoginStatus(data.error || "Failed to send code", true);
-    return;
-  }
-  setLoginStatus("Code sent. Check your email.");
+const email = loginEmail.value.trim().toLowerCase();
+if(!email){ setLoginStatus("Enter email", true); return; }
+setLoginStatus("Sending code...");
+const res = await fetch("/api/send-otp", {
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body: JSON.stringify({ email })
+});
+const data = await res.json().catch(()=>({}));
+if(!res.ok){
+setLoginStatus(data.error || "Failed to send code", true);
+return;
 }
-
+setLoginStatus("Code sent. Check your email.");
+}
 async function verifyOtp(){
-  const email = loginEmail.value.trim().toLowerCase();
-  const code = loginOtp.value.trim();
-  if(!email || !code){ setLoginStatus("Enter email and 6-digit code", true); return; }
-  setLoginStatus("Verifying...");
-  const res = await fetch("/api/verify-otp", {
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({ email, code })
-  });
-  const data = await res.json().catch(()=>({}));
-  if(!res.ok || !data.user){
-    setLoginStatus(data.error || "Verification failed", true);
-    return;
-  }
-  currentUser = data.user;
-  sessionStorage.setItem("tradeOfferUser", JSON.stringify(currentUser));
-  createdByEmail.value = currentUser.email || "";
-  dnEnteredByEmail.value = currentUser.email || "";
-  loggedUserName.textContent = currentUser.full_name || currentUser.email;
-  loggedUserRole.textContent = (currentUser.role || "").toUpperCase();
-  loginScreen.style.display = "none";
-  appShell.classList.remove("hidden");
-  setLoginStatus("");
-  await loadAllData();
-  await processEmailAction();
+const email = loginEmail.value.trim().toLowerCase();
+const code = loginOtp.value.trim();
+if(!email || !code){ setLoginStatus("Enter email and 6-digit code",
+true); return; }
+setLoginStatus("Verifying...");
+const res = await fetch("/api/verify-otp", {
+method:"POST",
+headers:{"Content-Type":"application/json"},
+body: JSON.stringify({ email, code })
+});
+const data = await res.json().catch(()=>({}));
+if(!res.ok || !data.user){
+setLoginStatus(data.error || "Verification failed", true);
+return;
 }
-
+currentUser = data.user;
+sessionStorage.setItem("tradeOfferUser", JSON.stringify(currentUser));
+createdByEmail.value = currentUser.email || "";
+dnEnteredByEmail.value = currentUser.email || "";
+loggedUserName.textContent = currentUser.full_name || currentUser.email;
+loggedUserRole.textContent = (currentUser.role || "").toUpperCase();
+loginScreen.style.display = "none";
+appShell.classList.remove("hidden");
+setLoginStatus("");
+await loadAllData();
+await processEmailAction();
+}
 function logout(){
-  sessionStorage.removeItem("tradeOfferUser");
-  currentUser = null;
-  appShell.classList.add("hidden");
-  loginScreen.style.display = "flex";
-  loginOtp.value = "";
-  setLoginStatus("");
+sessionStorage.removeItem("tradeOfferUser");
+currentUser = null;
+appShell.classList.add("hidden");
+loginScreen.style.display = "flex";
+loginOtp.value = "";
+setLoginStatus("");
 }
-
 async function loadOffers(){
-  const { data, error } = await sb.from("offers").select("*").order("created_at", {ascending:false});
-  if(error){ alert("Offer load failed: " + error.message); return []; }
-  return (data || []).map(o => ({
-    id: o.id, customer:o.customer, sku:o.sku, mrp:o.mrp, sellingPrice:o.selling_price,
-    offerPrice:o.offer_price, invoicePrice:o.invoice_price, avf:o.avf, estimatedQty:o.estimated_qty,
-    startDate:o.start_date, endDate:o.end_date, emailRef:o.email_ref, notes:o.notes, status:o.status || "Draft",
-    createdByEmail:o.created_by_email, approvedBy:o.approved_by, approvedDate:o.approved_date, createdAt:o.created_at
-  }));
+const { data, error } = await
+sb.from("offers").select("*").order("created_at", {ascending:false});
+if(error){ alert("Offer load failed: " + error.message); return []; }
+return (data || []).map(o => ({
+id: o.id, customer:o.customer, sku:o.sku, mrp:o.mrp,
+sellingPrice:o.selling_price,
+offerPrice:o.offer_price, invoicePrice:o.invoice_price, avf:o.avf,
+emailDt:o.email_dt, estimatedQty:o.estimated_qty,
+startDate:o.start_date, endDate:o.end_date, emailRef:o.email_ref,
+notes:o.notes, status:o.status || "Draft",
+createdByEmail:o.created_by_email, approvedBy:o.approved_by,
+approvedDate:o.approved_date, createdAt:o.created_at
+}));
 }
 async function loadDebitNotes(){
-  const { data, error } = await sb.from("debit_notes").select("*").order("created_at", {ascending:false});
-  if(error){ console.warn("Debit note load failed:", error.message); return []; }
-  return (data || []).map(d => ({
-    id:d.id, offerId:d.offer_id, dnNumber:d.dn_number, dnDate:d.dn_date, dnFrom:d.dn_from, dnTo:d.dn_to,
-    actualQty:d.actual_qty, claimAmount:d.claim_amount, remarks:d.remarks, customer:d.customer, sku:d.sku, avf:d.avf,
-    enteredByEmail:d.entered_by_email, dn_status:d.dn_status || "Submitted", approved_by:d.approved_by,
-    approved_date:d.approved_date, createdAt:d.created_at
-  }));
+const { data, error } = await
+sb.from("debit_notes").select("*").order("created_at",
+{ascending:false});
+if(error){ console.warn("Debit note load failed:", error.message);
+return []; }
+return (data || []).map(d => ({
+id:d.id, offerId:d.offer_id, dnNumber:d.dn_number, dnDate:d.dn_date,
+dnFrom:d.dn_from, dnTo:d.dn_to,
+actualQty:d.actual_qty, claimAmount:d.claim_amount, remarks:d.remarks,
+customer:d.customer, sku:d.sku, avf:d.avf,
+enteredByEmail:d.entered_by_email, dn_status:d.dn_status || "Submitted",
+approved_by:d.approved_by,
+approved_date:d.approved_date, createdAt:d.created_at
+}));
 }
 async function loadAllData(){
-  state.offers = await loadOffers();
-  state.debitNotes = await loadDebitNotes();
-  refreshAll();
+state.offers = await loadOffers();
+state.debitNotes = await loadDebitNotes();
+refreshAll();
 }
-
 function switchSection(id){
-  document.querySelectorAll(".section").forEach(s => s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-  document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
-  document.querySelector(`.nav-btn[data-target="${id}"]`).classList.add("active");
-  const titles = {
-    dashboard:["Dashboard","Controlled workflow for trade promotions and debit note settlement."],
-    create:["Create Offer","Prepare a draft offer with complete commercial details before approval."],
-    offers:["Offers","Review, approve, reject, and monitor offer records."],
-    debit:["Debit Notes","Capture customer debit note details only against approved offers."],
-    reports:["Reports","Quick summaries by customer and SKU."]
-  };
-  pageTitle.textContent = titles[id][0];
-  pageSubtitle.textContent = titles[id][1];
+document.querySelectorAll(".section").forEach(s =>
+s.classList.remove("active"));
+document.getElementById(id).classList.add("active");
+document.querySelectorAll(".nav-btn").forEach(b =>
+b.classList.remove("active"));
+document.querySelector(`.nav-btn[data-target="${id}"]`).classList.add("active");
+const titles = {
+dashboard:["Dashboard","Controlled workflow for trade promotions and
+debit note settlement."],
+create:["Create Offer","Prepare a draft offer with complete commercial
+details before approval."],
+offers:["Offers","Review, approve, reject, and monitor offer records."],
+debit:["Debit Notes","Capture customer debit note details only against
+approved offers."],
+reports:["Reports","Quick summaries by customer and SKU."]
+};
+pageTitle.textContent = titles[id][0];
+pageSubtitle.textContent = titles[id][1];
 }
-document.querySelectorAll(".nav-btn").forEach(btn => btn.addEventListener("click",()=>switchSection(btn.dataset.target)));
-
+document.querySelectorAll(".nav-btn").forEach(btn =>
+btn.addEventListener("click",()=>switchSection(btn.dataset.target)));
 function updateSuggestions(){
-  const defaultCustomers = ["Reliance Retail","D Mart","Metro Cash & Carry","Nature's Basket"];
-  const defaultSkus = [
-    "MOOWING COW MILK 500ML PP","MOOWING COW MILK 1000ML PP","MOOWING PROCESSED CHEESE BLOCK 1kg CBD",
-    "MOOWING PROCESSED CHEESE BLOCK 200g CBD","MOOWING PROCESSED CHEESE SLICE 200g PP","MOOWING PROCESS CHSE CUBE 200 GM"
-  ];
-  const customers = [...new Set([...defaultCustomers, ...state.offers.map(o=>o.customer).filter(Boolean)])];
-  const skus = [...new Set([...defaultSkus, ...state.offers.map(o=>o.sku).filter(Boolean)])];
-  customerSuggestions.innerHTML = customers.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
-  skuSuggestions.innerHTML = skus.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+const defaultCustomers = ["Reliance Retail","D Mart","Metro Cash & Carry","Nature's Basket"];
+const defaultSkus = [
+"MOOWING COW MILK 500ML PP","MOOWING COW MILK 1000ML PP","MOOWING PROCESSED CHEESE BLOCK 1kg CBD",
+"MOOWING PROCESSED CHEESE BLOCK 200g CBD","MOOWING PROCESSED CHEESE SLICE 200g PP","MOOWING PROCESS CHSE CUBE 200 GM"
+];
+const customers = [...new Set([...defaultCustomers, ...getStoredList("tradeOfferCustomers"), ...state.offers.map(o=>o.customer).filter(Boolean)])].sort();
+const skus = [...new Set([...defaultSkus, ...getStoredList("tradeOfferSkus"), ...state.offers.map(o=>o.sku).filter(Boolean)])].sort();
+customerSuggestions.innerHTML = customers.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
+skuSuggestions.innerHTML = skus.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
 }
-
 function clearForm(){
-  ["customer","sku","mrp","sellingPrice","offerPrice","invoicePrice","avf","estimatedQty","startDate","endDate","emailRef","notes"].forEach(id => {
-    document.getElementById(id).value = "";
-  });
-  if(currentUser){ createdByEmail.value = currentUser.email || ""; }
+["customer","sku","mrp","sellingPrice","offerPrice","invoicePrice","avf","estimatedQty","startDate","endDate","emailDt","emailRef","notes"].forEach(id
+=> {
+document.getElementById(id).value = "";
+});
+if(currentUser){ createdByEmail.value = currentUser.email || ""; }
+editingOfferId = null;
+saveOfferBtn.textContent = "Save Draft Offer";
 }
 function validateOfferInput(){
-  const required = [
-    ["customer","Customer"],["sku","SKU"],["mrp","MRP"],["sellingPrice","Current Selling Price"],["offerPrice","Offer Price"],
-    ["invoicePrice","Invoice Price"],["avf","AVF"],["startDate","Start Date"],["endDate","End Date"]
-  ];
-  for(const [id,label] of required){
-    if(!document.getElementById(id).value){ alert(label + " is required."); return false; }
-  }
-  if(new Date(startDate.value) > new Date(endDate.value)){ alert("Offer start date cannot be after end date."); return false; }
-  return true;
+const required = [
+["customer","Customer"],["sku","SKU"],["mrp","MRP"],["sellingPrice","Current
+Selling Price"],["offerPrice","Offer Price"],
+["invoicePrice","Invoice Price"],["avf","AVF"],["startDate","Start
+Date"],["endDate","End Date"]
+];
+for(const [id,label] of required){
+if(!document.getElementById(id).value){ alert(label + " is required.");
+return false; }
 }
+if(new Date(startDate.value) > new Date(endDate.value)){ alert("Offer
+start date cannot be after end date."); return false; }
+return true;
+}
+let editingOfferId = null;
 
 saveOfferBtn.addEventListener("click", async () => {
-  if(!currentUser){ alert("Login required"); return; }
-  if(!validateOfferInput()) return;
-  const offer = {
-    id: uid("OFF"),
-    customer: customer.value.trim(),
-    sku: sku.value.trim(),
-    mrp: Number(mrp.value),
-    selling_price: Number(sellingPrice.value),
-    offer_price: Number(offerPrice.value),
-    invoice_price: Number(invoicePrice.value),
-    avf: Number(avf.value),
-    estimated_qty: Number(estimatedQty.value || 0),
-    start_date: startDate.value,
-    end_date: endDate.value,
-    email_ref: emailRef.value.trim(),
-    notes: notes.value.trim(),
-    status: "Draft",
-    created_by_email: currentUser.email,
-    approved_by: null,
-    approved_date: null
-  };
-  const { error } = await sb.from("offers").insert([offer]);
-  if(error){ alert("Save failed: " + error.message); return; }
-  await postApprovalEmail({
-    type: "offer_created", id: offer.id, customer: offer.customer, sku: offer.sku,
-    offerPrice: offer.offer_price, invoicePrice: offer.invoice_price, avf: offer.avf,
-    startDate: offer.start_date, endDate: offer.end_date, createdByEmail: offer.created_by_email, emailRef: offer.email_ref
-  });
-  clearForm();
-  await loadAllData();
-  switchSection("offers");
+if(!currentUser){ alert("Login required"); return; }
+if(!validateOfferInput()) return;
+try{
+rememberValue("tradeOfferCustomers", customer.value);
+rememberValue("tradeOfferSkus", sku.value);
+const isEdit = !!editingOfferId;
+const existing = isEdit ? getOfferById(editingOfferId) : null;
+const offerId = isEdit ? editingOfferId : buildNextOfferId();
+const payload = {
+id: offerId,
+customer: customer.value.trim(),
+sku: sku.value.trim(),
+mrp: Number(mrp.value),
+selling_price: Number(sellingPrice.value),
+offer_price: Number(offerPrice.value),
+invoice_price: Number(invoicePrice.value),
+avf: Number(avf.value),
+email_dt: emailDt.value || null,
+estimated_qty: Number(estimatedQty.value || 0),
+start_date: startDate.value,
+end_date: endDate.value,
+email_ref: emailRef.value.trim(),
+notes: notes.value.trim(),
+status: existing?.status || "Draft",
+created_by_email: existing?.createdByEmail || currentUser.email,
+approved_by: existing?.approvedBy || null,
+approved_date: existing?.approvedDate || null
+};
+let response;
+if(isEdit){
+response = await sb.from("offers").update(payload).eq("id", editingOfferId);
+}else{
+response = await sb.from("offers").insert([payload]);
+}
+if(response.error){ alert((isEdit ? "Update" : "Save") + " failed: " + response.error.message); return; }
+
+if(!isEdit){
+await postApprovalEmail({
+type: "offer_created", id: payload.id, customer: payload.customer, sku: payload.sku,
+offerPrice: payload.offer_price, invoicePrice: payload.invoice_price, avf: payload.avf,
+emailDt: payload.email_dt, startDate: payload.start_date, endDate: payload.end_date,
+createdByEmail: payload.created_by_email, emailRef: payload.email_ref
 });
-
+}
+editingOfferId = null;
+saveOfferBtn.textContent = "Save Draft Offer";
+clearForm();
+await loadAllData();
+switchSection("offers");
+}catch(err){
+alert(err.message || "Save failed");
+}
+});
 clearFormBtn.addEventListener("click", clearForm);
-
 async function approveOffer(id){
-  const offer = getOfferById(id);
-  if(!offer || !isApprover()) return;
-  const { error } = await sb.from("offers").update({
-    status:"Approved", approved_by: currentUser.email, approved_date: new Date().toISOString()
-  }).eq("id", id);
-  if(error){ alert("Approve failed: " + error.message); return; }
-  await postApprovalEmail({ type:"offer_approved", id:offer.id, customer:offer.customer, sku:offer.sku, createdByEmail:offer.createdByEmail });
-  await loadAllData();
+const offer = getOfferById(id);
+if(!offer || !isApprover()) return;
+const { error } = await sb.from("offers").update({
+status:"Approved", approved_by: currentUser.email, approved_date: new
+Date().toISOString()
+}).eq("id", id);
+if(error){ alert("Approve failed: " + error.message); return; }
+await postApprovalEmail({ type:"offer_approved", id:offer.id,
+customer:offer.customer, sku:offer.sku,
+createdByEmail:offer.createdByEmail });
+await loadAllData();
 }
 async function rejectOffer(id){
-  const offer = getOfferById(id);
-  if(!offer || !isApprover()) return;
-  const { error } = await sb.from("offers").update({ status:"Rejected", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
-  if(error){ alert("Reject failed: " + error.message); return; }
-  await postApprovalEmail({ type:"offer_rejected", id:offer.id, customer:offer.customer, sku:offer.sku, createdByEmail:offer.createdByEmail });
-  await loadAllData();
+const offer = getOfferById(id);
+if(!offer || !isApprover()) return;
+const { error } = await sb.from("offers").update({ status:"Rejected",
+approved_by: currentUser.email, approved_date: new Date().toISOString()
+}).eq("id", id);
+if(error){ alert("Reject failed: " + error.message); return; }
+await postApprovalEmail({ type:"offer_rejected", id:offer.id,
+customer:offer.customer, sku:offer.sku,
+createdByEmail:offer.createdByEmail });
+await loadAllData();
 }
 async function deleteOffer(id){
-  const offer = getOfferById(id);
-  if(!offer || offer.status !== "Draft"){ alert("Only draft offers can be deleted."); return; }
-  if(!confirm("Delete this draft offer?")) return;
-  const { error } = await sb.from("offers").delete().eq("id", id);
-  if(error){ alert("Delete failed: " + error.message); return; }
-  await loadAllData();
+const offer = getOfferById(id);
+if(!offer || offer.status !== "Draft"){ alert("Only draft offers can be
+deleted."); return; }
+if(!confirm("Delete this draft offer?")) return;
+const { error } = await sb.from("offers").delete().eq("id", id);
+if(error){ alert("Delete failed: " + error.message); return; }
+await loadAllData();
 }
 function editOffer(id){
-  const offer = getOfferById(id);
-  if(!offer || offer.status !== "Draft"){ alert("Only draft offers can be edited."); return; }
-  switchSection("create");
-  customer.value = offer.customer; sku.value = offer.sku; mrp.value = offer.mrp; sellingPrice.value = offer.sellingPrice;
-  offerPrice.value = offer.offerPrice; invoicePrice.value = offer.invoicePrice; avf.value = offer.avf; estimatedQty.value = offer.estimatedQty;
-  startDate.value = offer.startDate; endDate.value = offer.endDate; emailRef.value = offer.emailRef || ""; notes.value = offer.notes || "";
-  createdByEmail.value = offer.createdByEmail || "";
-  deleteOffer(id);
+const offer = getOfferById(id);
+if(!offer){ alert("Offer not found."); return; }
+switchSection("create");
+editingOfferId = id;
+saveOfferBtn.textContent = "Update Offer";
+customer.value = offer.customer || "";
+sku.value = offer.sku || "";
+mrp.value = offer.mrp || "";
+sellingPrice.value = offer.sellingPrice || "";
+offerPrice.value = offer.offerPrice || "";
+invoicePrice.value = offer.invoicePrice || "";
+avf.value = offer.avf || "";
+emailDt.value = offer.emailDt || "";
+estimatedQty.value = offer.estimatedQty || "";
+startDate.value = offer.startDate || "";
+endDate.value = offer.endDate || "";
+emailRef.value = offer.emailRef || "";
+notes.value = offer.notes || "";
+createdByEmail.value = offer.createdByEmail || (currentUser ? currentUser.email : "");
 }
-
 function refreshDashboard(){
-  const totalOffers = state.offers.length;
-  const pending = state.offers.filter(o => o.status === "Draft").length;
-  const approved = state.offers.filter(o => o.status === "Approved").length;
-  const dnAmount = state.debitNotes.filter(d=>d.dn_status==="Approved").reduce((sum,d) => sum + Number(d.claimAmount || 0), 0);
-  mTotalOffers.textContent = totalOffers; mPending.textContent = pending; mApproved.textContent = approved; mDnAmount.textContent = formatMoney(dnAmount);
-  const pendingOffers = state.offers.filter(o => o.status === "Draft").slice(0,5);
-  pendingBox.className = pendingOffers.length ? "" : "empty";
-  pendingBox.innerHTML = pendingOffers.length ? pendingOffers.map(o=>`
-      <div style="padding:10px 0;border-bottom:1px solid #eef2f7;">
-        <div><b>${escapeHtml(o.customer)}</b> · ${escapeHtml(o.sku)}</div>
-        <div class="muted">Offer ₹${formatMoney(o.offerPrice)} | Invoice ₹${formatMoney(o.invoicePrice)} | AVF ₹${formatMoney(o.avf)} | ${formatDate(o.startDate)} - ${formatDate(o.endDate)}</div>
-      </div>`).join("") : "No pending approvals.";
-  const recentDns = [...state.debitNotes].slice(0,5);
-  recentDnBox.className = recentDns.length ? "" : "empty";
-  recentDnBox.innerHTML = recentDns.length ? recentDns.map(d=>`
-      <div style="padding:10px 0;border-bottom:1px solid #eef2f7;">
-        <div><b>${escapeHtml(d.dnNumber)}</b> · ${escapeHtml(d.customer)}</div>
-        <div class="muted">${escapeHtml(d.sku)} | Qty ${Number(d.actualQty).toLocaleString("en-IN")} | Claim ₹${formatMoney(d.claimAmount)}</div>
-      </div>`).join("") : "No debit notes added yet.";
+const totalOffers = state.offers.length;
+const pending = state.offers.filter(o => o.status === "Draft").length;
+const approved = state.offers.filter(o => o.status ===
+"Approved").length;
+const dnAmount =
+state.debitNotes.filter(d=>d.dn_status==="Approved").reduce((sum,d) =>
+sum + Number(d.claimAmount || 0), 0);
+mTotalOffers.textContent = totalOffers; mPending.textContent = pending;
+mApproved.textContent = approved; mDnAmount.textContent =
+formatMoney(dnAmount);
+const pendingOffers = state.offers.filter(o => o.status ===
+"Draft").slice(0,5);
+pendingBox.className = pendingOffers.length ? "" : "empty";
+pendingBox.innerHTML = pendingOffers.length ? pendingOffers.map(o=>`
+<div style="padding:10px 0;border-bottom:1px solid #eef2f7;">
+<div><b>${escapeHtml(o.customer)}</b> · ${escapeHtml(o.sku)}</div>
+<div class="muted">Offer ₹${formatMoney(o.offerPrice)} | Invoice
+₹${formatMoney(o.invoicePrice)} | AVF ₹${formatMoney(o.avf)} | Email Dt. ${formatDate(o.emailDt)} |
+${formatDate(o.startDate)} - ${formatDate(o.endDate)}</div>
+</div>`).join("") : "No pending approvals.";
+const recentDns = [...state.debitNotes].slice(0,5);
+recentDnBox.className = recentDns.length ? "" : "empty";
+recentDnBox.innerHTML = recentDns.length ? recentDns.map(d=>`
+<div style="padding:10px 0;border-bottom:1px solid #eef2f7;">
+<div><b>${escapeHtml(d.dnNumber)}</b> · ${escapeHtml(d.customer)}</div>
+<div class="muted">${escapeHtml(d.sku)} | Qty
+${Number(d.actualQty).toLocaleString("en-IN")} | Claim
+₹${formatMoney(d.claimAmount)}</div>
+</div>`).join("") : "No debit notes added yet.";
 }
-
 function refreshOffersTable(){
-  if(!state.offers.length){ offersTbody.innerHTML = `<tr><td colspan="13"><div class="empty">No offers created yet.</div></td></tr>`; return; }
-  offersTbody.innerHTML = state.offers.map(o => `
-    <tr>
-      <td><b>${o.id}</b></td>
-      <td>${escapeHtml(o.customer)}</td>
-      <td>${escapeHtml(o.sku)}</td>
-      <td class="mono">${formatMoney(o.mrp)}</td>
-      <td class="mono">${formatMoney(o.sellingPrice)}</td>
-      <td class="mono">${formatMoney(o.offerPrice)}</td>
-      <td class="mono">${formatMoney(o.invoicePrice)}</td>
-      <td class="mono">${formatMoney(o.avf)}</td>
-      <td>${formatDate(o.startDate)}<br><span class="muted">to ${formatDate(o.endDate)}</span></td>
-      <td class="mono">${Number(o.estimatedQty || 0).toLocaleString("en-IN")}</td>
-      <td><span class="chip ${String(o.status || 'Draft').toLowerCase()}">${o.status}</span></td>
-      <td>${o.approvedDate ? `${escapeHtml(o.approvedBy || "")}<br><span class="muted">${formatDate(o.approvedDate)}</span>` : '<span class="muted">Pending</span>'}</td>
-      <td><div class="row-actions">
-          ${(o.status === "Draft" && isApprover() && currentUser.email !== String(o.createdByEmail || "").toLowerCase()) ? `<button class="btn tiny success" onclick="approveOffer('${o.id}')">Approve</button>` : ""}
-          ${o.status === "Draft" && currentUser.email === String(o.createdByEmail || "").toLowerCase() ? `<button class="btn tiny warning" onclick="editOffer('${o.id}')">Edit</button><button class="btn tiny danger" onclick="deleteOffer('${o.id}')">Delete</button>` : ""}
-          ${(o.status === "Draft" && isApprover() && currentUser.email !== String(o.createdByEmail || "").toLowerCase()) ? `<button class="btn tiny secondary" onclick="rejectOffer('${o.id}')">Reject</button>` : ""}
-          ${o.status === "Approved" ? `<button class="btn tiny" onclick="openDnForOffer('${o.id}')">Add DN</button>` : ""}
-      </div></td>
-    </tr>`).join("");
+if(!state.offers.length){ offersTbody.innerHTML = `<tr><td
+colspan="14"><div class="empty">No offers created yet.</div></td></tr>`;
+return; }
+offersTbody.innerHTML = state.offers.map(o => `
+<tr>
+<td><b>${o.id}</b></td>
+<td>${escapeHtml(o.customer)}</td>
+<td>${escapeHtml(o.sku)}</td>
+<td class="mono">${formatMoney(o.mrp)}</td>
+<td class="mono">${formatMoney(o.sellingPrice)}</td>
+<td class="mono">${formatMoney(o.offerPrice)}</td>
+<td class="mono">${formatMoney(o.invoicePrice)}</td>
+<td class="mono">${formatMoney(o.avf)}</td>
+<td>${formatDate(o.emailDt)}</td>
+<td>${formatDate(o.startDate)}<br><span class="muted">to
+${formatDate(o.endDate)}</span></td>
+<td class="mono">${Number(o.estimatedQty ||
+0).toLocaleString("en-IN")}</td>
+<td><span class="chip ${String(o.status ||
+'Draft').toLowerCase()}">${o.status}</span></td>
+<td>${o.approvedDate ? `${escapeHtml(o.approvedBy || "")}<br><span
+class="muted">${formatDate(o.approvedDate)}</span>` : '<span
+class="muted">Pending</span>'}</td>
+<td><div class="row-actions">
+${isApprover() ? `<button class="btn tiny success" onclick="approveOffer('${o.id}')">Approve</button>` : ""}
+${isApprover() ? `<button class="btn tiny secondary" onclick="rejectOffer('${o.id}')">Reject</button>` : ""}
+${(isApprover() || currentUser.email === String(o.createdByEmail || "").toLowerCase()) ? `<button class="btn tiny warning" onclick="editOffer('${o.id}')">Edit</button>` : ""}
+${(isApprover() || (currentUser.email === String(o.createdByEmail || "").toLowerCase() && o.status === "Draft")) ? `<button class="btn tiny danger" onclick="deleteOffer('${o.id}')">Delete</button>` : ""}
+</div></td>
+</tr>`).join("");
 }
 function refreshDnOfferSelect(){
-  const approved = state.offers.filter(o => o.status === "Approved");
-  dnOfferSelect.innerHTML = approved.length ? `<option value="">Select approved offer</option>` + approved.map(o => `<option value="${o.id}">${escapeHtml(o.id)} · ${escapeHtml(o.customer)} · ${escapeHtml(o.sku)} · AVF ₹${formatMoney(o.avf)}</option>`).join("") : `<option value="">No approved offers available</option>`;
+const approved = state.offers.filter(o => o.status === "Approved");
+dnOfferSelect.innerHTML = approved.length ? `<option value="">Select
+approved offer</option>` + approved.map(o => `<option
+value="${o.id}">${escapeHtml(o.id)} · ${escapeHtml(o.customer)} ·
+${escapeHtml(o.sku)} · AVF ₹${formatMoney(o.avf)}</option>`).join("") :
+`<option value="">No approved offers available</option>`;
 }
 function calculateClaimPreview(){
-  const offer = getOfferById(dnOfferSelect.value);
-  const qty = Number(actualQty.value || 0);
-  claimAmountPreview.value = offer ? formatMoney(offer.avf * qty) : "";
+const offer = getOfferById(dnOfferSelect.value);
+const qty = Number(actualQty.value || 0);
+claimAmountPreview.value = offer ? formatMoney(offer.avf * qty) : "";
 }
 dnOfferSelect.addEventListener("change", calculateClaimPreview);
 actualQty.addEventListener("input", calculateClaimPreview);
 function openDnForOffer(id){
-  switchSection("debit");
-  refreshDnOfferSelect();
-  dnOfferSelect.value = id;
-  dnEnteredByEmail.value = currentUser ? currentUser.email : "";
-  calculateClaimPreview();
+switchSection("debit");
+refreshDnOfferSelect();
+dnOfferSelect.value = id;
+dnEnteredByEmail.value = currentUser ? currentUser.email : "";
+calculateClaimPreview();
 }
 addDnBtn.addEventListener("click", async () => {
-  const offer = getOfferById(dnOfferSelect.value);
-  if(!offer){ alert("Select an approved offer."); return; }
-  if(!dnNumber.value || !dnDate.value || !actualQty.value){ alert("DN Number, DN Date and Actual Qty are required."); return; }
-  const qty = Number(actualQty.value); const claimAmount = Number((offer.avf * qty).toFixed(2));
-  const dn = {
-    id: uid("DN"), offer_id: offer.id, dn_number: dnNumber.value.trim(), dn_date: dnDate.value, dn_from: dnFrom.value, dn_to: dnTo.value,
-    actual_qty: qty, claim_amount: claimAmount, remarks: dnRemarks.value.trim(), customer: offer.customer, sku: offer.sku, avf: offer.avf,
-    entered_by_email: currentUser.email, dn_status: "Submitted", approved_by: null, approved_date: null
-  };
-  const { error } = await sb.from("debit_notes").insert([dn]);
-  if(error){ alert("DN save failed: " + error.message); return; }
-  dnNumber.value=""; dnDate.value=""; dnFrom.value=""; dnTo.value=""; actualQty.value=""; claimAmountPreview.value=""; dnRemarks.value=""; dnOfferSelect.value="";
-  await postApprovalEmail({ type:"dn_submitted", id: dn.id, dnNumber: dn.dn_number, offerId: dn.offer_id, customer: dn.customer, sku: dn.sku, actualQty: dn.actual_qty, claimAmount: dn.claim_amount, enteredByEmail: dn.entered_by_email });
-  await loadAllData();
+const offer = getOfferById(dnOfferSelect.value);
+if(!offer){ alert("Select an approved offer."); return; }
+if(!dnNumber.value || !dnDate.value || !actualQty.value){ alert("DN
+Number, DN Date and Actual Qty are required."); return; }
+const qty = Number(actualQty.value); const claimAmount =
+Number((offer.avf * qty).toFixed(2));
+const dn = {
+id: uid("DN"), offer_id: offer.id, dn_number: dnNumber.value.trim(),
+dn_date: dnDate.value, dn_from: dnFrom.value, dn_to: dnTo.value,
+actual_qty: qty, claim_amount: claimAmount, remarks:
+dnRemarks.value.trim(), customer: offer.customer, sku: offer.sku, avf:
+offer.avf,
+entered_by_email: currentUser.email, dn_status: "Submitted",
+approved_by: null, approved_date: null
+};
+const { error } = await sb.from("debit_notes").insert([dn]);
+if(error){ alert("DN save failed: " + error.message); return; }
+dnNumber.value=""; dnDate.value=""; dnFrom.value=""; dnTo.value="";
+actualQty.value=""; claimAmountPreview.value=""; dnRemarks.value="";
+dnOfferSelect.value="";
+await postApprovalEmail({ type:"dn_submitted", id: dn.id, dnNumber:
+dn.dn_number, offerId: dn.offer_id, customer: dn.customer, sku: dn.sku,
+actualQty: dn.actual_qty, claimAmount: dn.claim_amount, enteredByEmail:
+dn.entered_by_email });
+await loadAllData();
 });
 async function approveDN(id){
-  const dn = state.debitNotes.find(d => d.id === id);
-  if(!dn || !isApprover()) return;
-  const { error } = await sb.from("debit_notes").update({ dn_status:"Approved", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
-  if(error){ alert("DN approve failed: " + error.message); return; }
-  await postApprovalEmail({ type:"dn_approved", id:dn.id, dnNumber:dn.dnNumber, offerId:dn.offerId, customer:dn.customer, sku:dn.sku, actualQty:dn.actualQty, claimAmount:dn.claimAmount, enteredByEmail:dn.enteredByEmail || "" });
-  await loadAllData();
+const dn = state.debitNotes.find(d => d.id === id);
+if(!dn || !isApprover()) return;
+const { error } = await sb.from("debit_notes").update({
+dn_status:"Approved", approved_by: currentUser.email, approved_date: new
+Date().toISOString() }).eq("id", id);
+if(error){ alert("DN approve failed: " + error.message); return; }
+await postApprovalEmail({ type:"dn_approved", id:dn.id,
+dnNumber:dn.dnNumber, offerId:dn.offerId, customer:dn.customer,
+sku:dn.sku, actualQty:dn.actualQty, claimAmount:dn.claimAmount,
+enteredByEmail:dn.enteredByEmail || "" });
+await loadAllData();
 }
 async function rejectDN(id){
-  const dn = state.debitNotes.find(d => d.id === id);
-  if(!dn || !isApprover()) return;
-  const { error } = await sb.from("debit_notes").update({ dn_status:"Rejected", approved_by: currentUser.email, approved_date: new Date().toISOString() }).eq("id", id);
-  if(error){ alert("DN reject failed: " + error.message); return; }
-  await postApprovalEmail({ type:"dn_rejected", id:dn.id, dnNumber:dn.dnNumber, offerId:dn.offerId, customer:dn.customer, sku:dn.sku, actualQty:dn.actualQty, claimAmount:dn.claimAmount, enteredByEmail:dn.enteredByEmail || "" });
-  await loadAllData();
+const dn = state.debitNotes.find(d => d.id === id);
+if(!dn || !isApprover()) return;
+const { error } = await sb.from("debit_notes").update({
+dn_status:"Rejected", approved_by: currentUser.email, approved_date: new
+Date().toISOString() }).eq("id", id);
+if(error){ alert("DN reject failed: " + error.message); return; }
+await postApprovalEmail({ type:"dn_rejected", id:dn.id,
+dnNumber:dn.dnNumber, offerId:dn.offerId, customer:dn.customer,
+sku:dn.sku, actualQty:dn.actualQty, claimAmount:dn.claimAmount,
+enteredByEmail:dn.enteredByEmail || "" });
+await loadAllData();
 }
 function refreshDnTable(){
-  if(!state.debitNotes.length){ dnTbody.innerHTML = `<tr><td colspan="12"><div class="empty">No debit notes saved yet.</div></td></tr>`; return; }
-  dnTbody.innerHTML = state.debitNotes.map(d => `
-    <tr>
-      <td><b>${escapeHtml(d.dnNumber)}</b></td>
-      <td>${formatDate(d.dnDate)}</td>
-      <td>${escapeHtml(d.customer)}</td>
-      <td>${escapeHtml(d.sku)}</td>
-      <td>${escapeHtml(d.offerId)}</td>
-      <td class="mono">${formatMoney(d.avf)}</td>
-      <td class="mono">${Number(d.actualQty).toLocaleString("en-IN")}</td>
-      <td class="mono"><span class="chip dn">₹ ${formatMoney(d.claimAmount)}</span></td>
-      <td>${d.dnFrom || d.dnTo ? `${formatDate(d.dnFrom)} - ${formatDate(d.dnTo)}` : ""}</td>
-      <td><span class="chip ${String(d.dn_status || "Submitted").toLowerCase() === "approved" ? "approved" : (String(d.dn_status || "Submitted").toLowerCase() === "rejected" ? "rejected" : "dn")}">${escapeHtml(d.dn_status || "Submitted")}</span></td>
-      <td>
-        ${((d.dn_status || "Submitted") === "Submitted" && isApprover() && currentUser.email !== String(d.enteredByEmail || "").toLowerCase()) ? `
-          <div class="row-actions">
-            <button class="btn tiny success" onclick="approveDN('${d.id}')">Approve</button>
-            <button class="btn tiny danger" onclick="rejectDN('${d.id}')">Reject</button>
-          </div>` : ((d.approved_by || d.approved_date) ? `${escapeHtml(d.approved_by || "")}<br><span class="muted">${formatDate(d.approved_date || "")}</span>` : `<span class="muted">-</span>`)}
-      </td>
-      <td>${escapeHtml(d.remarks || "")}</td>
-    </tr>`).join("");
+if(!state.debitNotes.length){ dnTbody.innerHTML = `<tr><td
+colspan="12"><div class="empty">No debit notes saved
+yet.</div></td></tr>`; return; }
+dnTbody.innerHTML = state.debitNotes.map(d => `
+<tr>
+<td><b>${escapeHtml(d.dnNumber)}</b></td>
+<td>${formatDate(d.dnDate)}</td>
+<td>${escapeHtml(d.customer)}</td>
+<td>${escapeHtml(d.sku)}</td>
+<td>${escapeHtml(d.offerId)}</td>
+<td class="mono">${formatMoney(d.avf)}</td>
+<td class="mono">${Number(d.actualQty).toLocaleString("en-IN")}</td>
+<td class="mono"><span class="chip dn">₹
+${formatMoney(d.claimAmount)}</span></td>
+<td>${d.dnFrom || d.dnTo ? `${formatDate(d.dnFrom)} -
+${formatDate(d.dnTo)}` : ""}</td>
+<td><span class="chip ${String(d.dn_status || "Submitted").toLowerCase()
+=== "approved" ? "approved" : (String(d.dn_status ||
+"Submitted").toLowerCase() === "rejected" ? "rejected" :
+"dn")}">${escapeHtml(d.dn_status || "Submitted")}</span></td>
+<td>
+${((d.dn_status || "Submitted") === "Submitted" && isApprover() &&
+currentUser.email !== String(d.enteredByEmail || "").toLowerCase()) ? `
+<div class="row-actions">
+<button class="btn tiny success"
+onclick="approveDN('${d.id}')">Approve</button>
+<button class="btn tiny danger"
+onclick="rejectDN('${d.id}')">Reject</button>
+</div>` : ((d.approved_by || d.approved_date) ?
+`${escapeHtml(d.approved_by || "")}<br><span
+class="muted">${formatDate(d.approved_date || "")}</span>` : `<span
+class="muted">-</span>`)}
+</td>
+<td>${escapeHtml(d.remarks || "")}</td>
+</tr>`).join("");
 }
 function refreshReports(){
-  const totalClaim = state.debitNotes.filter(d=>d.dn_status==="Approved").reduce((sum,d)=>sum+Number(d.claimAmount||0),0);
-  const totalQty = state.debitNotes.filter(d=>d.dn_status==="Approved").reduce((sum,d)=>sum+Number(d.actualQty||0),0);
-  const avgAvf = state.offers.length ? state.offers.reduce((sum,o)=>sum+Number(o.avf||0),0)/state.offers.length : 0;
-  rTotalClaim.textContent = formatMoney(totalClaim); rTotalQty.textContent = totalQty.toLocaleString("en-IN"); rAvgAvf.textContent = formatMoney(avgAvf);
-  const custMap = {}; state.debitNotes.forEach(d => { if(!custMap[d.customer]) custMap[d.customer]={qty:0, amount:0, dns:0}; custMap[d.customer].qty += Number(d.actualQty||0); custMap[d.customer].amount += Number(d.claimAmount||0); custMap[d.customer].dns +=1; });
-  customerSummary.innerHTML = Object.keys(custMap).length ? `<table style="min-width:100%;"><thead><tr><th>Customer</th><th>DN Count</th><th>Actual Qty</th><th>Claim Amount</th></tr></thead><tbody>${Object.entries(custMap).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>₹ ${formatMoney(v.amount)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No customer data yet.</div>`;
-  const skuMap = {}; state.debitNotes.forEach(d => { if(!skuMap[d.sku]) skuMap[d.sku]={qty:0, amount:0, dns:0}; skuMap[d.sku].qty += Number(d.actualQty||0); skuMap[d.sku].amount += Number(d.claimAmount||0); skuMap[d.sku].dns +=1; });
-  skuSummary.innerHTML = Object.keys(skuMap).length ? `<table style="min-width:100%;"><thead><tr><th>SKU</th><th>DN Count</th><th>Actual Qty</th><th>Claim Amount</th></tr></thead><tbody>${Object.entries(skuMap).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>₹ ${formatMoney(v.amount)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No SKU data yet.</div>`;
+const totalClaim =
+state.debitNotes.filter(d=>d.dn_status==="Approved").reduce((sum,d)=>sum+Number(d.claimAmount||0),0);
+const totalQty =
+state.debitNotes.filter(d=>d.dn_status==="Approved").reduce((sum,d)=>sum+Number(d.actualQty||0),0);
+const avgAvf = state.offers.length ?
+state.offers.reduce((sum,o)=>sum+Number(o.avf||0),0)/state.offers.length
+: 0;
+rTotalClaim.textContent = formatMoney(totalClaim); rTotalQty.textContent
+= totalQty.toLocaleString("en-IN"); rAvgAvf.textContent =
+formatMoney(avgAvf);
+const custMap = {}; state.debitNotes.forEach(d => {
+if(!custMap[d.customer]) custMap[d.customer]={qty:0, amount:0, dns:0};
+custMap[d.customer].qty += Number(d.actualQty||0);
+custMap[d.customer].amount += Number(d.claimAmount||0);
+custMap[d.customer].dns +=1; });
+customerSummary.innerHTML = Object.keys(custMap).length ? `<table
+style="min-width:100%;"><thead><tr><th>Customer</th><th>DN
+Count</th><th>Actual Qty</th><th>Claim
+Amount</th></tr></thead><tbody>${Object.entries(custMap).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>₹
+${formatMoney(v.amount)}</td></tr>`).join("")}</tbody></table>` : `<div
+class="empty">No customer data yet.</div>`;
+const skuMap = {}; state.debitNotes.forEach(d => { if(!skuMap[d.sku])
+skuMap[d.sku]={qty:0, amount:0, dns:0}; skuMap[d.sku].qty +=
+Number(d.actualQty||0); skuMap[d.sku].amount +=
+Number(d.claimAmount||0); skuMap[d.sku].dns +=1; });
+skuSummary.innerHTML = Object.keys(skuMap).length ? `<table
+style="min-width:100%;"><thead><tr><th>SKU</th><th>DN
+Count</th><th>Actual Qty</th><th>Claim
+Amount</th></tr></thead><tbody>${Object.entries(skuMap).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>₹
+${formatMoney(v.amount)}</td></tr>`).join("")}</tbody></table>` : `<div
+class="empty">No SKU data yet.</div>`;
 }
-function refreshAll(){ updateSuggestions(); refreshDashboard(); refreshOffersTable(); refreshDnOfferSelect(); refreshDnTable(); refreshReports(); }
-
+function refreshAll(){ updateSuggestions(); refreshDashboard();
+refreshOffersTable(); refreshDnOfferSelect(); refreshDnTable();
+refreshReports(); }
 async function processEmailAction(){
-  const params = new URLSearchParams(window.location.search);
-  const action = params.get("action"); const offerId = params.get("offerId"); const dnId = params.get("dnId");
-  if(!action || !currentUser || !isApprover()) return;
-  if(offerId){
-    if(action === "approve") await approveOffer(offerId);
-    if(action === "reject") await rejectOffer(offerId);
-  }
-  if(dnId){
-    if(action === "approve") await approveDN(dnId);
-    if(action === "reject") await rejectDN(dnId);
-  }
-  const cleanUrl = window.location.origin + window.location.pathname;
-  history.replaceState({}, "", cleanUrl);
+const params = new URLSearchParams(window.location.search);
+const action = params.get("action"); const offerId =
+params.get("offerId"); const dnId = params.get("dnId");
+if(!action || !currentUser || !isApprover()) return;
+if(offerId){
+if(action === "approve") await approveOffer(offerId);
+if(action === "reject") await rejectOffer(offerId);
 }
-
+if(dnId){
+if(action === "approve") await approveDN(dnId);
+if(action === "reject") await rejectDN(dnId);
+}
+const cleanUrl = window.location.origin + window.location.pathname;
+history.replaceState({}, "", cleanUrl);
+}
 sampleBtn.classList.add("hidden");
 resetBtn.classList.add("hidden");
 exportBtn.addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = "trade-offer-data.json"; a.click(); URL.revokeObjectURL(a.href);
+const blob = new Blob([JSON.stringify(state, null, 2)],
+{type:"application/json"});
+const a = document.createElement("a");
+a.href = URL.createObjectURL(blob); a.download =
+"trade-offer-data.json"; a.click(); URL.revokeObjectURL(a.href);
 });
 logoutBtn.addEventListener("click", logout);
 sendOtpBtn.addEventListener("click", sendOtp);
 verifyOtpBtn.addEventListener("click", verifyOtp);
-
 window.addEventListener("load", async () => {
-  const saved = sessionStorage.getItem("tradeOfferUser");
-  if(saved){
-    try{
-      currentUser = JSON.parse(saved);
-      createdByEmail.value = currentUser.email || "";
-      dnEnteredByEmail.value = currentUser.email || "";
-      loggedUserName.textContent = currentUser.full_name || currentUser.email;
-      loggedUserRole.textContent = (currentUser.role || "").toUpperCase();
-      loginScreen.style.display = "none";
-      appShell.classList.remove("hidden");
-      await loadAllData();
-      await processEmailAction();
-    }catch(e){}
-  }
+const saved = sessionStorage.getItem("tradeOfferUser");
+if(saved){
+try{
+currentUser = JSON.parse(saved);
+createdByEmail.value = currentUser.email || "";
+dnEnteredByEmail.value = currentUser.email || "";
+loggedUserName.textContent = currentUser.full_name || currentUser.email;
+loggedUserRole.textContent = (currentUser.role || "").toUpperCase();
+loginScreen.style.display = "none";
+appShell.classList.remove("hidden");
+await loadAllData();
+await processEmailAction();
+}catch(e){}
+}
 });
-
 </script>
 </body>
 </html>
