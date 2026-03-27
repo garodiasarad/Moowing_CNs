@@ -1,133 +1,70 @@
-export default async function handler(req, res) {
+const crypto = require("crypto");
+const { supabaseAdmin } = require("./_lib/supabaseAdmin");
+const { OTP_TTL_MINUTES } = require("./_lib/env");
+
+function json(res, status, payload) {
+  res.status(status).setHeader("Content-Type", "application/json");
+  res.end(JSON.stringify(payload));
+}
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+function makeOtp() {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+    return json(res, 405, { error: "Method not allowed" });
   }
 
   try {
     const { email } = req.body || {};
+    const normalizedEmail = normalizeEmail(email);
 
-    if (!email) {
-      return res.status(400).json({ ok: false, error: "Email required" });
+    if (!normalizedEmail || !normalizedEmail.includes("@")) {
+      return json(res, 400, { error: "Valid email is required" });
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_KEY;
-    const apiKey = process.env.BREVO_API_KEY;
-    const senderEmail = process.env.BREVO_SENDER_EMAIL;
-    const senderName = process.env.BREVO_SENDER_NAME || "NowTech AI";
+    const code = makeOtp();
+    const codeHash = crypto.createHash("sha256").update(code).digest("hex");
+    const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000).toISOString();
 
-    if (!supabaseUrl || !serviceKey) {
-      return res.status(500).json({ ok: false, error: "Missing Supabase env vars" });
-    }
-
-    if (!apiKey || !senderEmail) {
-      return res.status(500).json({ ok: false, error: "Missing Brevo env vars" });
-    }
-
-    // 1. Check allowed user
-    const userResp = await fetch(
-      `${supabaseUrl}/rest/v1/app_users?email=eq.${encodeURIComponent(email)}&select=email,role,is_active`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const users = await userResp.json();
-
-    if (!userResp.ok) {
-      return res.status(500).json({ ok: false, error: "Failed to check app user", details: users });
-    }
-
-    if (!Array.isArray(users) || users.length === 0 || users[0].is_active === false) {
-      return res.status(403).json({ ok: false, error: "User not allowed" });
-    }
-
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString();
-
-    // 2. Invalidate old unused OTPs for that email
-    await fetch(
-      `${supabaseUrl}/rest/v1/otp_codes?email=eq.${encodeURIComponent(email)}&used=eq.false`,
-      {
-        method: "PATCH",
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-          Prefer: "return=minimal",
-        },
-        body: JSON.stringify({ used: true }),
-      }
-    );
-
-    // 3. Save new OTP
-    const otpSaveResp = await fetch(`${supabaseUrl}/rest/v1/otp_codes`, {
-      method: "POST",
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        "Content-Type": "application/json",
-        Prefer: "return=representation",
-      },
-      body: JSON.stringify([
-        {
-          email,
-          code: otp,
+    const { error: upsertError } = await supabaseAdmin
+      .from("otp_codes")
+      .upsert(
+        [{
+          email: normalizedEmail,
+          code_hash: codeHash,
           expires_at: expiresAt,
           used: false,
-        },
-      ]),
-    });
+          updated_at: new Date().toISOString()
+        }],
+        { onConflict: "email" }
+      );
 
-    const otpSaveData = await otpSaveResp.json().catch(() => ({}));
-
-    if (!otpSaveResp.ok) {
-      return res.status(500).json({ ok: false, error: "Failed to save OTP", details: otpSaveData });
+    if (upsertError) {
+      return json(res, 500, { error: `OTP save failed: ${upsertError.message}` });
     }
 
-    // 4. Send OTP email
-    const emailResp = await fetch("https://api.brevo.com/v3/smtp/email", {
-      method: "POST",
-      headers: {
-        "api-key": apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        sender: {
-          email: senderEmail,
-          name: senderName,
-        },
-        to: [{ email }],
-        subject: "Your Login Code",
-        htmlContent: `
-          <div style="font-family: Arial, sans-serif; line-height:1.5;">
-            <h2>Your login code is: ${otp}</h2>
-            <p>Use this 6-digit code to sign in to NowTech AI - Trade Offer Control.</p>
-            <p>This code will expire in 10 minutes.</p>
-          </div>
-        `,
-      }),
-    });
+    const { error: mailError } = await supabaseAdmin
+      .from("outbound_emails")
+      .insert([{
+        to_email: normalizedEmail,
+        subject: "Your Trade Offer Control login code",
+        body_text: `Your login code is ${code}. It expires in ${OTP_TTL_MINUTES} minutes.`,
+        email_type: "otp_login",
+        status: "queued"
+      }]);
 
-    const emailData = await emailResp.json().catch(() => ({}));
-
-    if (!emailResp.ok) {
-      return res.status(500).json({
-        ok: false,
-        error: emailData?.message || "Brevo send failed",
-        details: emailData,
-      });
+    if (mailError) {
+      return json(res, 500, { error: `OTP email queue failed: ${mailError.message}` });
     }
 
-    return res.status(200).json({ ok: true });
-  } catch (error) {
-    return res.status(500).json({
-      ok: false,
-      error: error?.message || "Unexpected server error",
-    });
+    return json(res, 200, { ok: true });
+  } catch (err) {
+    return json(res, 500, { error: err.message || "Unexpected error" });
   }
-}
+};
