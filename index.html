@@ -29,13 +29,16 @@
     color:var(--text);
     background:var(--bg);
   }
-  .app{display:grid; grid-template-columns: 300px 1fr; min-height:100vh}
+  .app{display:grid; grid-template-columns: 300px 1fr; min-height:100vh; transition:grid-template-columns .25s ease}
+  .app.sidebar-collapsed{grid-template-columns:0 1fr}
   .sidebar{
     background:linear-gradient(180deg, #0b1220 0%, #0f172a 100%);
     color:#fff;
     padding:22px 18px;
-    position:sticky; top:0; height:100vh;
+    position:sticky; top:0; height:100vh; overflow:auto;
+    transition:transform .25s ease, opacity .25s ease, padding .25s ease;
   }
+  .app.sidebar-collapsed .sidebar{transform:translateX(-100%); opacity:0; pointer-events:none; padding:0}
   .brand{
     display:flex; align-items:center; gap:14px; margin:8px 4px 24px;
   }
@@ -152,6 +155,22 @@
   .user-chip strong{font-size:14px}
   .user-chip span{font-size:12px; color:var(--muted)}
 
+  .toolbar-left{display:flex; align-items:flex-start; gap:14px}
+  .icon-btn{
+    width:48px; height:48px; border:none; border-radius:14px; background:#fff; color:#0f172a;
+    box-shadow:var(--shadow); cursor:pointer; font-size:20px; flex:0 0 auto;
+  }
+  .rules-card{margin-top:28px}
+  .rules-card summary{list-style:none; cursor:pointer; font-weight:800; font-size:22px; display:flex; justify-content:space-between; align-items:center}
+  .rules-card summary::-webkit-details-marker{display:none}
+  .rules-card .rules-content{margin-top:14px}
+  .rules-card ul{margin:0; padding-left:22px; color:#e2e8f0}
+  .rules-card li{margin:10px 0; font-size:16px}
+  .pending-item{padding:12px 0; border-bottom:1px solid #eef2f7; cursor:pointer}
+  .pending-item:last-child{border-bottom:none}
+  .pending-item:hover{background:#fafcff}
+  .action-select{min-width:140px; border:1px solid #cbd5e1; border-radius:10px; padding:8px 10px; background:#fff}
+
   @media (max-width: 1200px){
     .cards{grid-template-columns:repeat(2,1fr)}
     .form-grid{grid-template-columns:repeat(2,1fr)}
@@ -159,7 +178,8 @@
   }
   @media (max-width: 900px){
     .app{grid-template-columns:1fr}
-    .sidebar{position:relative; height:auto}
+    .sidebar{position:relative; height:auto; transform:none!important; opacity:1!important; pointer-events:auto!important; padding:22px 18px!important}
+    .app.sidebar-collapsed{grid-template-columns:1fr}
     .main{padding:18px}
     .cards{grid-template-columns:1fr}
     .form-grid{grid-template-columns:1fr}
@@ -203,22 +223,27 @@
       <button class="nav-btn" data-target="debit">Debit Notes</button>
       <button class="nav-btn" data-target="reports">Reports</button>
     </div>
-    <div class="rules">
-      <h3>Control Rules</h3>
-      <ul>
-        <li>Draft offers can be edited and deleted.</li>
-        <li>Only approved offers can receive debit notes.</li>
-        <li>Approved offer price, invoice price, AVF, and dates are locked.</li>
-        <li>Claim amount is auto-calculated as <b>AVF 'd7 Actual Qty</b>.</li>
-      </ul>
-    </div>
+    <details class="rules rules-card">
+      <summary>Control Rules <span>▾</span></summary>
+      <div class="rules-content">
+        <ul>
+          <li>Draft offers can be edited and deleted.</li>
+          <li>Only approved offers can receive debit notes.</li>
+          <li>Approved offer price, invoice price, AVF, and dates are locked.</li>
+          <li>Claim amount is auto-calculated as <b>AVF × Actual Qty</b>.</li>
+        </ul>
+      </div>
+    </details>
   </aside>
 
   <main class="main">
     <div class="toolbar">
-      <div>
-        <h2 id="pageTitle">Dashboard</h2>
-        <p id="pageSubtitle">Controlled workflow for trade promotions and debit note settlement.</p>
+      <div class="toolbar-left">
+        <button class="icon-btn" id="sidebarToggleBtn" title="Show or hide menu">☰</button>
+        <div>
+          <h2 id="pageTitle">Dashboard</h2>
+          <p id="pageSubtitle">Controlled workflow for trade promotions and debit note settlement.</p>
+        </div>
       </div>
       <div class="toolbar-right">
         <div class="user-chip">
@@ -230,8 +255,7 @@
         <button class="btn secondary" id="logoutBtn">Logout</button>
         <button class="btn secondary" id="sampleBtn">Load Sample Data</button>
         <button class="btn secondary" id="resetBtn">Reset Data</button>
-        <button class="btn" id="exportBtn">Export JSON</button>
-      </div>
+              </div>
     </div>
 
     <section class="section active" id="dashboard">
@@ -249,19 +273,13 @@
           <div class="metric-value mono" id="mApproved">0</div>
         </div>
         <div class="card">
-          <div class="metric-label">Total DN Amount (uc0u8377 )</div>
+          <div class="metric-label">Total DN Amount (₹ )</div>
           <div class="metric-value mono" id="mDnAmount">0.00</div>
         </div>
       </div>
-      <div class="panel-grid">
-        <div class="card">
-          <h3>Pending Approvals</h3>
-          <div id="pendingBox" class="empty">No pending approvals.</div>
-        </div>
-        <div class="card">
-          <h3>Recent Debit Notes</h3>
-          <div id="recentDnBox" class="empty">No debit notes added yet.</div>
-        </div>
+      <div class="card">
+        <h3>Pending Approvals</h3>
+        <div id="pendingBox" class="empty">No pending approvals.</div>
       </div>
     </section>
 
@@ -280,24 +298,24 @@
             <datalist id="skuSuggestions"></datalist>
           </div>
           <div class="field">
-            <label>MRP (uc0u8377 )</label>
+            <label>MRP (₹ )</label>
             <input id="mrp" type="number" step="0.01" placeholder="0.00" />
           </div>
           <div class="field">
-            <label>Current Selling Price (uc0u8377 )</label>
+            <label>Current Selling Price (₹ )</label>
             <input id="sellingPrice" type="number" step="0.01" placeholder="0.00" />
           </div>
 
           <div class="field">
-            <label>Offer Price to Consumer (uc0u8377 )</label>
+            <label>Offer Price to Consumer (₹ )</label>
             <input id="offerPrice" type="number" step="0.01" placeholder="0.00" />
           </div>
           <div class="field">
-            <label>Invoice Price (uc0u8377 )</label>
+            <label>Invoice Price (₹ )</label>
             <input id="invoicePrice" type="number" step="0.01" placeholder="0.00" />
           </div>
           <div class="field">
-            <label>AVF per Unit (uc0u8377 )</label>
+            <label>AVF per Unit (₹ )</label>
             <input id="avf" type="number" step="0.01" placeholder="0.00" />
           </div>
           <div class="field">
@@ -328,7 +346,7 @@
           </div>
         </div>
         <div class="actions">
-          <button class="btn" id="saveOfferBtn">Save Draft Offer</button>
+          <button class="btn" id="saveOfferBtn">Send for Approval</button>
           <button class="btn secondary" id="clearFormBtn">Clear Form</button>
         </div>
         <div class="footer-note">Tip: customer and SKU fields keep reusable suggestions from past entries, so repeat selection is faster.</div>
@@ -349,7 +367,8 @@
               <th>Invoice</th>
               <th>AVF</th>
               <th>Email Dt.</th>
-              <th>Period</th>
+              <th>From</th>
+              <th>To</th>
               <th>Est. Qty</th>
               <th>Status</th>
               <th>Approval</th>
@@ -406,7 +425,7 @@
           </div>
         </div>
         <div class="actions">
-          <button class="btn success" id="addDnBtn">Save Debit Note</button>
+          <button class="btn success" id="addDnBtn">Send for Approval</button>
         </div>
       </div>
 
@@ -436,7 +455,7 @@
     <section class="section" id="reports">
       <div class="report-grid">
         <div class="card">
-          <div class="metric-label">Total Claim Amount (uc0u8377 )</div>
+          <div class="metric-label">Total Claim Amount (₹ )</div>
           <div class="metric-value mono" id="rTotalClaim">0.00</div>
         </div>
         <div class="card">
@@ -444,7 +463,7 @@
           <div class="metric-value mono" id="rTotalQty">0</div>
         </div>
         <div class="card">
-          <div class="metric-label">Avg AVF (uc0u8377 )</div>
+          <div class="metric-label">Avg AVF (₹ )</div>
           <div class="metric-value mono" id="rAvgAvf">0.00</div>
         </div>
       </div>
@@ -655,7 +674,7 @@ function clearForm(){
   });
   if(currentUser){ createdByEmail.value = currentUser.email || ""; }
   editingOfferId = null;
-  saveOfferBtn.textContent = "Save Draft Offer";
+  saveOfferBtn.textContent = "Send for Approval";
 }
 let editingOfferId = null;
 
@@ -794,34 +813,59 @@ function editOffer(id){
   createdByEmail.value = offer.createdByEmail || (currentUser ? currentUser.email : "");
 }
 
+
+function openOfferAction(id){
+  switchSection("offers");
+  const el = document.querySelector(`select[action-offer-id="${id}"]`) || document.querySelector(`select[data-offer-id="${id}"]`);
+  const row = [...document.querySelectorAll("#offersTbody tr")].find(tr => tr.innerHTML.includes(`>${id}<`));
+  if(row){ row.scrollIntoView({behavior:"smooth", block:"center"}); }
+}
+
+async function handleOfferAction(selectEl, id){
+  const action = selectEl.value;
+  if(!action) return;
+  selectEl.disabled = true;
+  try{
+    if(action === "approve") await approveOffer(id);
+    if(action === "reject") await rejectOffer(id);
+    if(action === "edit") editOffer(id);
+    if(action === "delete") await deleteOffer(id);
+  }finally{
+    selectEl.value = "";
+    selectEl.disabled = false;
+  }
+}
+
 function refreshDashboard(){
   const totalOffers = state.offers.length;
   const pending = state.offers.filter(o => o.status === "Draft").length;
   const approved = state.offers.filter(o => o.status === "Approved").length;
   const dnAmount = state.debitNotes.filter(d=>d.dn_status==="Approved").reduce((sum,d) => sum + Number(d.claimAmount || 0), 0);
-  mTotalOffers.textContent = totalOffers; mPending.textContent = pending; mApproved.textContent = approved; mDnAmount.textContent = formatMoney(dnAmount);
-  const pendingOffers = state.offers.filter(o => o.status === "Draft").slice(0,5);
+  mTotalOffers.textContent = totalOffers;
+  mPending.textContent = pending;
+  mApproved.textContent = approved;
+  mDnAmount.textContent = formatMoney(dnAmount);
+
+  const pendingOffers = state.offers.filter(o => o.status === "Draft");
   pendingBox.className = pendingOffers.length ? "" : "empty";
   pendingBox.innerHTML = pendingOffers.length ? pendingOffers.map(o=>`
-      <div style="padding:10px 0;border-bottom:1px solid #eef2f7;">
-        <div><b>${escapeHtml(o.customer)}</b> 'b7 ${escapeHtml(o.sku)}</div>
-        <div class="muted">Offer uc0u8377 ${formatMoney(o.offerPrice)} | Invoice u8377 ${formatMoney(o.invoicePrice)} | AVF u8377 ${formatMoney(o.avf)} | Email Dt. ${formatDate(o.emailDt)} | ${formatDate(o.startDate)} - ${formatDate(o.endDate)}</div>
+      <div class="pending-item" onclick="openOfferAction('${o.id}')">
+        <div><b>${escapeHtml(o.customer)}</b> • ${escapeHtml(o.sku)}</div>
+        <div class="muted">Offer ₹ ${formatMoney(o.offerPrice)} | Invoice ₹ ${formatMoney(o.invoicePrice)} | AVF ₹ ${formatMoney(o.avf)} | Email Dt. ${formatDate(o.emailDt)} | ${formatDate(o.startDate)} - ${formatDate(o.endDate)}</div>
       </div>`).join("") : "No pending approvals.";
-  const recentDns = [...state.debitNotes].slice(0,5);
-  recentDnBox.className = recentDns.length ? "" : "empty";
-  recentDnBox.innerHTML = recentDns.length ? recentDns.map(d=>`
-      <div style="padding:10px 0;border-bottom:1px solid #eef2f7;">
-        <div><b>${escapeHtml(d.dnNumber)}</b> 'b7 ${escapeHtml(d.customer)}</div>
-        <div class="muted">${escapeHtml(d.sku)} | Qty ${Number(d.actualQty).toLocaleString("en-IN")} | Claim uc0u8377 ${formatMoney(d.claimAmount)}</div>
-      </div>`).join("") : "No debit notes added yet.";
 }
 
 function refreshOffersTable(){
-  if(!state.offers.length){ offersTbody.innerHTML = `<tr><td colspan="14"><div class="empty">No offers created yet.</div></td></tr>`; return; }
+  if(!state.offers.length){ offersTbody.innerHTML = `<tr><td colspan="15"><div class="empty">No offers created yet.</div></td></tr>`; return; }
   offersTbody.innerHTML = state.offers.map(o => {
     const isOwner = currentUser && currentUser.email === String(o.createdByEmail || "").toLowerCase();
-    const canEdit = isApprover() || (isOwner && o.status === "Draft");
-    const canDelete = isApprover() || (isOwner && o.status === "Draft");
+    const canApproveOrReject = isApprover() && o.status === "Draft";
+    const canEdit = (isApprover() || isOwner) && o.status === "Draft";
+    const canDelete = (isApprover() || isOwner) && o.status === "Draft";
+    const actions = [];
+    if(canApproveOrReject) actions.push(`<option value="approve">Approve</option>`,`<option value="reject">Reject</option>`);
+    if(canEdit) actions.push(`<option value="edit">Edit</option>`);
+    if(canDelete) actions.push(`<option value="delete">Delete</option>`);
     return `
     <tr>
       <td><b>${o.id}</b></td>
@@ -833,22 +877,18 @@ function refreshOffersTable(){
       <td class="mono">${formatMoney(o.invoicePrice)}</td>
       <td class="mono">${formatMoney(o.avf)}</td>
       <td>${formatDate(o.emailDt)}</td>
-      <td>${formatDate(o.startDate)}<br><span class="muted">to ${formatDate(o.endDate)}</span></td>
+      <td>${formatDate(o.startDate)}</td>
+      <td>${formatDate(o.endDate)}</td>
       <td class="mono">${Number(o.estimatedQty || 0).toLocaleString("en-IN")}</td>
       <td><span class="chip ${String(o.status || 'Draft').toLowerCase()}">${o.status}</span></td>
       <td>${o.approvedDate ? `${escapeHtml(o.approvedBy || "")}<br><span class="muted">${formatDate(o.approvedDate)}</span>` : '<span class="muted">Pending</span>'}</td>
-      <td><div class="row-actions">
-          ${isApprover() ? `<button class="btn tiny success" onclick="approveOffer('${o.id}')">Approve</button>` : ""}
-          ${isApprover() ? `<button class="btn tiny secondary" onclick="rejectOffer('${o.id}')">Reject</button>` : ""}
-          ${canEdit ? `<button class="btn tiny warning" onclick="editOffer('${o.id}')">Edit</button>` : ""}
-          ${canDelete ? `<button class="btn tiny danger" onclick="deleteOffer('${o.id}')">Delete</button>` : ""}
-      </div></td>
+      <td>${actions.length ? `<select class="action-select" data-offer-id="${o.id}" onchange="handleOfferAction(this, '${o.id}')"><option value="">Select</option>${actions.join("")}</select>` : `<span class="muted">No action</span>`}</td>
     </tr>`;
   }).join("");
 }
 function refreshDnOfferSelect(){
   const approved = state.offers.filter(o => o.status === "Approved");
-  dnOfferSelect.innerHTML = approved.length ? `<option value="">Select approved offer</option>` + approved.map(o => `<option value="${o.id}">${escapeHtml(o.id)} 'b7 ${escapeHtml(o.customer)} 'b7 ${escapeHtml(o.sku)} 'b7 AVF uc0u8377 ${formatMoney(o.avf)}</option>`).join("") : `<option value="">No approved offers available</option>`;
+  dnOfferSelect.innerHTML = approved.length ? `<option value="">Select approved offer</option>` + approved.map(o => `<option value="${o.id}">${escapeHtml(o.id)} • ${escapeHtml(o.customer)} • ${escapeHtml(o.sku)} • AVF ₹ ${formatMoney(o.avf)}</option>`).join("") : `<option value="">No approved offers available</option>`;
 }
 function calculateClaimPreview(){
   const offer = getOfferById(dnOfferSelect.value);
@@ -907,7 +947,7 @@ function refreshDnTable(){
       <td>${escapeHtml(d.offerId)}</td>
       <td class="mono">${formatMoney(d.avf)}</td>
       <td class="mono">${Number(d.actualQty).toLocaleString("en-IN")}</td>
-      <td class="mono"><span class="chip dn">uc0u8377  ${formatMoney(d.claimAmount)}</span></td>
+      <td class="mono"><span class="chip dn">₹  ${formatMoney(d.claimAmount)}</span></td>
       <td>${d.dnFrom || d.dnTo ? `${formatDate(d.dnFrom)} - ${formatDate(d.dnTo)}` : ""}</td>
       <td><span class="chip ${String(d.dn_status || "Submitted").toLowerCase() === "approved" ? "approved" : (String(d.dn_status || "Submitted").toLowerCase() === "rejected" ? "rejected" : "dn")}">${escapeHtml(d.dn_status || "Submitted")}</span></td>
       <td>
@@ -935,7 +975,7 @@ function refreshReports(){
     custMap[d.customer].amount += Number(d.claimAmount||0);
     custMap[d.customer].dns += 1;
   });
-  customerSummary.innerHTML = Object.keys(custMap).length ? `<table style="min-width:100%;"><thead><tr><th>Customer</th><th>DN Count</th><th>Actual Qty</th><th>Claim Amount</th></tr></thead><tbody>${Object.entries(custMap).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>uc0u8377 ${formatMoney(v.amount)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No customer data yet.</div>`;
+  customerSummary.innerHTML = Object.keys(custMap).length ? `<table style="min-width:100%;"><thead><tr><th>Customer</th><th>DN Count</th><th>Actual Qty</th><th>Claim Amount</th></tr></thead><tbody>${Object.entries(custMap).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>₹ ${formatMoney(v.amount)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No customer data yet.</div>`;
 
   const skuMap = {};
   state.debitNotes.forEach(d => {
@@ -944,9 +984,10 @@ function refreshReports(){
     skuMap[d.sku].amount += Number(d.claimAmount||0);
     skuMap[d.sku].dns += 1;
   });
-  skuSummary.innerHTML = Object.keys(skuMap).length ? `<table style="min-width:100%;"><thead><tr><th>SKU</th><th>DN Count</th><th>Actual Qty</th><th>Claim Amount</th></tr></thead><tbody>${Object.entries(skuMap).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>uc0u8377 ${formatMoney(v.amount)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No SKU data yet.</div>`;
+  skuSummary.innerHTML = Object.keys(skuMap).length ? `<table style="min-width:100%;"><thead><tr><th>SKU</th><th>DN Count</th><th>Actual Qty</th><th>Claim Amount</th></tr></thead><tbody>${Object.entries(skuMap).map(([k,v])=>`<tr><td>${escapeHtml(k)}</td><td>${v.dns}</td><td>${v.qty.toLocaleString("en-IN")}</td><td>₹ ${formatMoney(v.amount)}</td></tr>`).join("")}</tbody></table>` : `<div class="empty">No SKU data yet.</div>`;
 
-  offerRegisterWrap.innerHTML = state.offers.length ? `<div class="table-wrap"><table><thead><tr><th>Offer ID</th><th>Customer</th><th>SKU</th><th>Email Dt.</th><th>Period</th><th>Status</th></tr></thead><tbody>${state.offers.map(o=>`<tr><td><b>${escapeHtml(o.id)}</b></td><td>${escapeHtml(o.customer)}</td><td>${escapeHtml(o.sku)}</td><td>${formatDate(o.emailDt)}</td><td>${formatDate(o.startDate)} - ${formatDate(o.endDate)}</td><td>${escapeHtml(o.status || "Draft")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">No offers yet.</div>`;
+  offerRegisterWrap.innerHTML = state.offers.length ? `<div class="table-wrap"><table><thead><tr><th>Offer ID</th><th>Customer</th><th>SKU</th><th>Email Dt.</th><th>From</th>
+              <th>To</th><th>Status</th></tr></thead><tbody>${state.offers.map(o=>`<tr><td><b>${escapeHtml(o.id)}</b></td><td>${escapeHtml(o.customer)}</td><td>${escapeHtml(o.sku)}</td><td>${formatDate(o.emailDt)}</td><td>${formatDate(o.startDate)} - ${formatDate(o.endDate)}</td><td>${escapeHtml(o.status || "Draft")}</td></tr>`).join("")}</tbody></table></div>` : `<div class="empty">No offers yet.</div>`;
 }
 function refreshAll(){ updateSuggestions(); refreshDashboard(); refreshOffersTable(); refreshDnOfferSelect(); refreshDnTable(); refreshReports(); }
 
@@ -968,10 +1009,9 @@ async function processEmailAction(){
 
 sampleBtn.classList.add("hidden");
 resetBtn.classList.add("hidden");
-exportBtn.addEventListener("click", () => {
-  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = "trade-offer-data.json"; a.click(); URL.revokeObjectURL(a.href);
+
+sidebarToggleBtn.addEventListener("click", () => {
+  appShell.classList.toggle("sidebar-collapsed");
 });
 logoutBtn.addEventListener("click", logout);
 sendOtpBtn.addEventListener("click", sendOtp);
