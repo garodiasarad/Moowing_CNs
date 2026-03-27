@@ -616,7 +616,7 @@ id: o.id, customer:o.customer, sku:o.sku, mrp:o.mrp,
 sellingPrice:o.selling_price,
 offerPrice:o.offer_price, invoicePrice:o.invoice_price, avf:o.avf,
 emailDt:o.email_dt, estimatedQty:o.estimated_qty,
-startDate:o.start_date, endDate:o.end_date, emailRef:o.email_ref,
+startDate:o.start_date, endDate:o.end_date, emailDt:o.email_dt,
 notes:o.notes, status:o.status || "Draft",
 createdByEmail:o.created_by_email, approvedBy:o.approved_by,
 approvedDate:o.approved_date, createdAt:o.created_at
@@ -677,7 +677,7 @@ customerSuggestions.innerHTML = customers.map(v=>`<option value="${escapeHtml(v)
 skuSuggestions.innerHTML = skus.map(v=>`<option value="${escapeHtml(v)}"></option>`).join("");
 }
 function clearForm(){
-["customer","sku","mrp","sellingPrice","offerPrice","invoicePrice","avf","estimatedQty","startDate","endDate","emailDt","emailRef","notes"].forEach(id
+["customer","sku","mrp","sellingPrice","offerPrice","invoicePrice","avf","estimatedQty","startDate","endDate","emailDt","notes"].forEach(id
 => {
 document.getElementById(id).value = "";
 });
@@ -743,7 +743,7 @@ await postApprovalEmail({
 type: "offer_created", id: payload.id, customer: payload.customer, sku: payload.sku,
 offerPrice: payload.offer_price, invoicePrice: payload.invoice_price, avf: payload.avf,
 emailDt: payload.email_dt, startDate: payload.start_date, endDate: payload.end_date,
-createdByEmail: payload.created_by_email, emailRef: payload.email_ref
+createdByEmail: payload.created_by_email,
 });
 }
 editingOfferId = null;
@@ -807,7 +807,6 @@ emailDt.value = offer.emailDt || "";
 estimatedQty.value = offer.estimatedQty || "";
 startDate.value = offer.startDate || "";
 endDate.value = offer.endDate || "";
-emailRef.value = offer.emailRef || "";
 notes.value = offer.notes || "";
 createdByEmail.value = offer.createdByEmail || (currentUser ? currentUser.email : "");
 }
