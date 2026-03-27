@@ -1,96 +1,120 @@
-export default async function handler(req, res) {
+const crypto = require("crypto");
+const { supabaseAdmin } = require("./_lib/supabaseAdmin");
+const { buildSessionCookie } = require("./_lib/session");
+
+function json(res, status, payload, extraHeaders = {}) {
+  res.status(status);
+  res.setHeader("Content-Type", "application/json");
+  Object.entries(extraHeaders).forEach(([k, v]) => res.setHeader(k, v));
+  res.end(JSON.stringify(payload));
+}
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
-    return res.status(405).json({ ok: false, error: "Method not allowed" });
+    return json(res, 405, { error: "Method not allowed" });
   }
 
   try {
     const { email, code } = req.body || {};
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedCode = String(code || "").trim();
 
-    if (!email || !code) {
-      return res.status(400).json({ ok: false, error: "Email and code required" });
+    if (!normalizedEmail || !normalizedCode) {
+      return json(res, 400, { error: "Email and code are required" });
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const serviceKey = process.env.SUPABASE_SERVICE_KEY;
+    const { data: otpRow, error: otpError } = await supabaseAdmin
+      .from("otp_codes")
+      .select("*")
+      .eq("email", normalizedEmail)
+      .single();
 
-    if (!supabaseUrl || !serviceKey) {
-      return res.status(500).json({ ok: false, error: "Missing Supabase env vars" });
+    if (otpError || !otpRow) {
+      return json(res, 400, { error: "Invalid or expired code" });
     }
 
-    // 1. Find matching unused OTP
-    const otpResp = await fetch(
-      `${supabaseUrl}/rest/v1/otp_codes?email=eq.${encodeURIComponent(email)}&code=eq.${encodeURIComponent(code)}&used=eq.false&select=id,email,code,expires_at,used`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-        },
+    if (otpRow.used) {
+      return json(res, 400, { error: "Code already used" });
+    }
+
+    if (new Date(otpRow.expires_at).getTime() < Date.now()) {
+      return json(res, 400, { error: "Code expired" });
+    }
+
+    const incomingHash = crypto.createHash("sha256").update(normalizedCode).digest("hex");
+    if (incomingHash !== otpRow.code_hash) {
+      return json(res, 400, { error: "Invalid or expired code" });
+    }
+
+    const { error: markUsedError } = await supabaseAdmin
+      .from("otp_codes")
+      .update({ used: true, updated_at: new Date().toISOString() })
+      .eq("email", normalizedEmail);
+
+    if (markUsedError) {
+      return json(res, 500, { error: `OTP update failed: ${markUsedError.message}` });
+    }
+
+    let { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .eq("email", normalizedEmail)
+      .maybeSingle();
+
+    if (!profile) {
+      const pseudoId = crypto.randomUUID();
+
+      const { error: insertProfileError } = await supabaseAdmin
+        .from("profiles")
+        .insert([{
+          id: pseudoId,
+          email: normalizedEmail,
+          full_name: normalizedEmail,
+          role: "maker",
+          active: true
+        }]);
+
+      if (insertProfileError) {
+        return json(res, 500, { error: `Profile create failed: ${insertProfileError.message}` });
       }
-    );
 
-    const otpRows = await otpResp.json();
+      const profileRes = await supabaseAdmin
+        .from("profiles")
+        .select("*")
+        .eq("email", normalizedEmail)
+        .single();
 
-    if (!otpResp.ok) {
-      return res.status(500).json({ ok: false, error: "Failed to verify code", details: otpRows });
-    }
-
-    if (!Array.isArray(otpRows) || otpRows.length === 0) {
-      return res.status(400).json({ ok: false, error: "Invalid code" });
-    }
-
-    const otpRow = otpRows[0];
-
-    if (new Date(otpRow.expires_at) < new Date()) {
-      return res.status(400).json({ ok: false, error: "Code expired" });
-    }
-
-    // 2. Mark OTP used
-    const markResp = await fetch(`${supabaseUrl}/rest/v1/otp_codes?id=eq.${otpRow.id}`, {
-      method: "PATCH",
-      headers: {
-        apikey: serviceKey,
-        Authorization: `Bearer ${serviceKey}`,
-        "Content-Type": "application/json",
-        Prefer: "return=minimal",
-      },
-      body: JSON.stringify({ used: true }),
-    });
-
-    if (!markResp.ok) {
-      return res.status(500).json({ ok: false, error: "Failed to mark code used" });
-    }
-
-    // 3. Load user
-    const userResp = await fetch(
-      `${supabaseUrl}/rest/v1/app_users?email=eq.${encodeURIComponent(email)}&select=email,full_name,role,is_active`,
-      {
-        headers: {
-          apikey: serviceKey,
-          Authorization: `Bearer ${serviceKey}`,
-          "Content-Type": "application/json",
-        },
+      if (profileRes.error || !profileRes.data) {
+        return json(res, 500, { error: "Profile fetch failed after create" });
       }
+
+      profile = profileRes.data;
+    }
+
+    if (!profile.active) {
+      return json(res, 403, { error: "User is inactive" });
+    }
+
+    const user = {
+      id: profile.id,
+      email: profile.email,
+      full_name: profile.full_name || profile.email,
+      role: profile.role || "maker"
+    };
+
+    const cookie = buildSessionCookie(user);
+
+    return json(
+      res,
+      200,
+      { ok: true, user },
+      { "Set-Cookie": cookie }
     );
-
-    const users = await userResp.json();
-
-    if (!userResp.ok) {
-      return res.status(500).json({ ok: false, error: "Failed to load user", details: users });
-    }
-
-    if (!Array.isArray(users) || users.length === 0 || users[0].is_active === false) {
-      return res.status(403).json({ ok: false, error: "User not allowed" });
-    }
-
-    return res.status(200).json({
-      ok: true,
-      user: users[0],
-    });
-  } catch (error) {
-    return res.status(500).json({
-      ok: false,
-      error: error?.message || "Unexpected server error",
-    });
+  } catch (err) {
+    return json(res, 500, { error: err.message || "Unexpected error" });
   }
-}
+};
